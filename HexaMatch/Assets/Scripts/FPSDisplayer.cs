@@ -6,7 +6,7 @@ public class FPSDisplayer : MonoBehaviour
 	public Text fpsText;
 	public float deltaTime;
 
-#if DEBUG
+#if UNITY_EDITOR
 	private void Update()
 	{
 		deltaTime += (Time.deltaTime - deltaTime) * 0.1f;

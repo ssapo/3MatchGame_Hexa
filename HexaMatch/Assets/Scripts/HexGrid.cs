@@ -9,10 +9,12 @@ public class HexGrid : MonoBehaviour
 	public event ListListIntVector2 OnAutoMatchesFound;
 
 	public Transform hexBasePrefab;
+	public Transform hexWoodPrefab;
 	public ElementType[] elementTypes;
 
 	public string gridElementTransformPoolTag;
 
+	// 이거 거꾸로가 맞음 착각하지마셈!!
 	private int[] board = {
 		1, 1, 1, 1, 1, 1, 1, 1, 1,
 		1, 1, 1, 1, 0, 1, 1, 1, 1,
@@ -39,20 +41,20 @@ public class HexGrid : MonoBehaviour
 	private Coroutine elementMovementCoroutine;
 	private Coroutine fillGridCoroutine;
 	private Vector3 startPos;
-	private Vector3 fallDirection = Vector3.down; //TODO: Currently changing fall direction causes in infinite loop resulting in a freeze
-												  //(So keep fallDirection as Vector3.down)
-												  //Fix if necessary
+	private Vector3 fallDirection = Vector3.down;
+	private IntVector2[] prevSwapIndices = new IntVector2[2] { IntVector2.NullVector, IntVector2.NullVector };
 
 	private float hexBaseZPos = 0.25f;
+	private float hexWoodZPos = 0.125f;
 	private float hexWidth = 0.75f;
 	private float hexHeight = 0.866f;
 	private float elementWidth = 0.5f;
-	private float spawnOffsetPerRow = 1.25f;
-	private float SpawnOffsetPerElementCount = 0.05f;
+	//private float spawnOffsetPerRow = 1.25f;
+	//private float SpawnOffsetPerElementCount = 0.05f;
 
 	private bool isElementMovementDone = true;
 
-	private IntVector2[] prevSwapIndices = new IntVector2[2] { IntVector2.NullVector, IntVector2.NullVector };
+	private int typeEterator;
 
 	public int GridWidth
 	{
@@ -101,6 +103,7 @@ public class HexGrid : MonoBehaviour
 		if (spawnHexBases)
 		{
 			CreateGridBase();
+			CreateGridWood();
 		}
 
 		InitializeGridElements();
@@ -119,6 +122,23 @@ public class HexGrid : MonoBehaviour
 					continue;
 
 				SpawnHexBaseTile(new IntVector2(x, y));
+			}
+		}
+	}
+
+	private void CreateGridWood()
+	{
+		var gridWidth = GridWidth;
+		var gridHeight = GridHeight;
+
+		for (int x = 0; x < gridWidth; x++)
+		{
+			for (int y = 0; y < gridHeight; y++)
+			{
+				if (IsEmptyCell(x, y))
+					continue;
+
+				SpawnHexWoodTile(new IntVector2(x, y));
 			}
 		}
 	}
@@ -147,6 +167,18 @@ public class HexGrid : MonoBehaviour
 		hex.name = "HexTile " + gridIndex.x + "|" + gridIndex.y;
 	}
 
+	private void SpawnHexWoodTile(IntVector2 gridIndex)
+	{
+		var hex = Instantiate(hexWoodPrefab) as Transform;
+		var spawnPos = CalculateWorldPos(gridIndex);
+		spawnPos.z = hexWoodZPos;
+		hex.position = spawnPos;
+		hex.eulerAngles = new Vector3(-90f, 0, 0);
+
+		hex.parent = this.transform;
+		hex.name = "HexWood " + gridIndex.x + "|" + gridIndex.y;
+	}
+
 	private void CreateNewGridElement(ElementType elementType, Vector3 spawnPos, IntVector2 gridIndex, Transform parent)
 	{
 		var element = PoolManager.SpawnFromPool(gridElementTransformPoolTag);
@@ -160,6 +192,13 @@ public class HexGrid : MonoBehaviour
 	private ElementType ChooseRandomElementType()
 	{
 		return elementTypes[Random.Range(0, elementTypes.Length)];
+	}
+
+	private ElementType ChooseEterateElementType()
+	{
+		typeEterator += 1;
+		typeEterator %= elementTypes.Length;
+		return elementTypes[typeEterator];
 	}
 
 	private List<List<IntVector2>> FindMatchesOfElementType(ElementType elementType)
@@ -285,7 +324,6 @@ public class HexGrid : MonoBehaviour
 
 	private IEnumerator MoveAllElementsTowardsCorrectWorldPositions(float movementSpeedIncrementMultiplier = 1f)
 	{
-		//print("Starting drop 'animations'.");
 		float movementSpeed = 0f;
 		float movementSpeedIncrementPerSecond = 25f;
 
@@ -308,7 +346,6 @@ public class HexGrid : MonoBehaviour
 			}
 		}
 
-		print($"indicesToMove.Count {indicesToMove.Count}");
 		while (indicesToMove.Count > 0)
 		{
 			for (int i = 0; i < indicesToMove.Count; i++)
@@ -339,8 +376,9 @@ public class HexGrid : MonoBehaviour
 			yield return new WaitForEndOfFrame();
 		}
 
+		isElementMovementDone = true;
 		//print("Finished drop 'animations'.");
-		ElementMovementFinished();
+		//ElementMovementFinished();
 	}
 
 	public void MoveElementsToCorrectPositions(float movementSpeedIncrementMultiplier = 1f)
@@ -596,6 +634,7 @@ public class HexGrid : MonoBehaviour
 			for (int x = 0; x < gridElements.GetLength(1); x++)
 			{
 				if (IsEmptyCell(x, y)) continue;
+				if (gridElements[y, x].elementTransform == null) continue;
 
 				gridElements[y, x].elementTransform.gameObject.SetActive(false);
 			}
@@ -622,17 +661,17 @@ public class HexGrid : MonoBehaviour
 	}
 
 
-	public void FillGrid()
+	public void FillGrid(bool first = false)
 	{
 		if (fillGridCoroutine != null)
 		{
 			StopCoroutine(fillGridCoroutine);
 		}
 
-		fillGridCoroutine = StartCoroutine(FillGridUntilFull());
+		fillGridCoroutine = StartCoroutine(FillGridUntilFull(false));
 	}
 
-	public IEnumerator FillGridUntilFull()
+	public IEnumerator FillGridUntilFull(bool first = false)
 	{
 		var factoryIndcies = new List<IntVector2>() {
 			new IntVector2(0, 4),
@@ -650,64 +689,71 @@ public class HexGrid : MonoBehaviour
 				if (IsEmptyCell(e.x, e.y))
 					continue;
 
-				var gridElement = gridElements[e.y, e.x];
-				if (gridElement.elementTransform != null)
+				if (gridElements[e.y, e.x].elementTransform != null)
 					continue;
 
 				var correctWorldPos = CalculateWorldPos(new IntVector2(e.x, e.y));
 				var descendingElementWorldPos = correctWorldPos - fallDirection * hexHeight;
-				CreateNewGridElement(ChooseRandomElementType(), descendingElementWorldPos, new IntVector2(e.x, e.y), transform);
+
+				if (first)
+					CreateNewGridElement(ChooseEterateElementType(), descendingElementWorldPos, new IntVector2(e.x, e.y), transform);
+				else
+					CreateNewGridElement(ChooseRandomElementType(), descendingElementWorldPos, new IntVector2(e.x, e.y), transform);
 			}
 
+			var forbidden = new HashSet<IntVector2>();
 			//Find all empty indices
-			for (int y = gridElements.GetLength(0) - 1; y >= 0; y--)
+			for (int y = 0; y < gridElements.GetLength(0); y++)
 			{
-				for (int x = gridElements.GetLength(1) - 1; x >= 0; x--)
+				for (int x = 0; x < gridElements.GetLength(1); x++)
 				{
 					if (IsEmptyCell(x, y))
 						continue;
 
-					var gridElement = gridElements[y, x];
-					if (gridElement.elementTransform != null)
+					if (forbidden.Contains(new IntVector2(x, y)))
+						continue;
+
+					if (gridElements[y, x].elementTransform != null)
 					{
 						var nV = new IntVector2(x, y - 1);
-
-						// 아래쪽을 우선 , 대각선까지 계산
 						if (nV.x >= 0 && nV.x < gridWidth && nV.y >= 0 && nV.y < gridHeight)
 						{
-							if (IsEmptyCell(nV.x, nV.y) && gridElements[nV.y, nV.x].elementTransform == null)
+							if (IsEmptyCell(nV.x, nV.y) || gridElements[nV.y, nV.x].elementTransform != null)
 							{
-								nV.x = x + ((centerX > x) ? -1 : 1);
+								nV.x = x + ((centerX > x) ? 1 : -1);
 
 								if (nV.x >= 0 && nV.x < gridWidth && nV.y >= 0 && nV.y < gridHeight)
 								{
-									if (IsEmptyCell(nV.x, nV.y) && gridElements[nV.y, nV.x].elementTransform == null)
+									if (IsEmptyCell(nV.x, nV.y) || gridElements[nV.y, nV.x].elementTransform != null)
 									{
 										continue;
 									}
 									else
 									{
-										SwapElements(new IntVector2(x, y), nV);
-										//gridElements[nY, nX].elementType = gridElement.elementType;
-										//gridElements[nY, nX].elementTransform = gridElement.elementTransform;
-										//gridElements[y, x].correctWorldPos = 
+										gridElements[nV.y, nV.x] = gridElements[y, x];
+										gridElements[y, x].elementTransform = null;
+
+										gridElements[nV.y, nV.x].correctWorldPos = CalculateWorldPos(nV);
+										forbidden.Add(nV);
 									}
 								}
 							}
 							else
 							{
-								SwapElements(new IntVector2(x, y), nV);
+								gridElements[nV.y, nV.x] = gridElements[y, x];
+								gridElements[y, x].elementTransform = null;
 
-								//gridElements[nY, nX].elementTransform = gridElement.elementTransform;
-								//gridElements[nY, nX].correctWorldPos = CalculateWorldPos(nX, nY);
-								//gridElement.elementTransform = null;
+								gridElements[nV.y, nV.x].correctWorldPos = CalculateWorldPos(nV);
+								forbidden.Add(nV);
 							}
 						}
 					}
+					//else
+					//	forbidden.Add(new IntVector2(x, y));
 				}
 			}
 
-			yield return MoveAllElementsTowardsCorrectWorldPositions();
+			yield return MoveAllElementsTowardsCorrectWorldPositions(8f);
 		}
 	}
 

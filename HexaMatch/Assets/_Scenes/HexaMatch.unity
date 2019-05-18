@@ -332,6 +332,7 @@ GameObject:
   - component: {fileID: 1129032275}
   - component: {fileID: 1129032277}
   - component: {fileID: 1129032276}
+  - component: {fileID: 1129032278}
   m_Layer: 5
   m_Name: Text
   m_TagString: Untagged
@@ -400,6 +401,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1129032274}
   m_CullTransparentMesh: 0
+--- !u!114 &1129032278
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1129032274}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d7cdf7a9dea70344867ee5aee56532f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  fpsText: {fileID: 1129032276}
+  deltaTime: 0
 --- !u!1 &1179769084
 GameObject:
   m_ObjectHideFlags: 0
@@ -451,12 +466,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hexBasePrefab: {fileID: 4227468934523398, guid: 9f38a4045117636489a819fccaa28c7f,
     type: 3}
+  hexWoodPrefab: {fileID: 4227468934523398, guid: 979249b394290894183dd0f6cb203feb,
+    type: 3}
   elementTypes:
   - {fileID: 11400000, guid: 0afd4b8803c5f134da45fdffe87d7b85, type: 2}
   - {fileID: 11400000, guid: e2b05e40edfbfd5489aa529a3e3d2147, type: 2}
   - {fileID: 11400000, guid: 4ce0a17a32fad894c89e938255a8710c, type: 2}
   - {fileID: 11400000, guid: 1710d17428214174692211b05a777e5b, type: 2}
   - {fileID: 11400000, guid: 9343323aef6e40842902c89c2a6f7289, type: 2}
+  - {fileID: 11400000, guid: 25315d77cb78a84488265a2130887ae5, type: 2}
   gridElementTransformPoolTag: GridElementTransformPool
   minViableConnection: 2
   minAutoMatchConnection: 4
@@ -604,7 +622,7 @@ MonoBehaviour:
     minSize: 42
   - tag: SelectionEffectPool
     prefab: {fileID: 1275806307389382, guid: 2b0e477ee03eaf34ca799260a08ec142, type: 3}
-    minSize: 9
+    minSize: 10
   - tag: BlueElementCollectionEffectPool
     prefab: {fileID: 1223741225066076, guid: 7ffba8e075d9c744294e9b91f0e68c46, type: 3}
     minSize: 10
@@ -616,6 +634,9 @@ MonoBehaviour:
     minSize: 10
   - tag: YellowElementCollectionEffectPool
     prefab: {fileID: 1362991110217054, guid: 78911adc4a9d4534b8bc25c29d433d56, type: 3}
+    minSize: 10
+  - tag: OrangeElementCollectionEffectPool
+    prefab: {fileID: 1362991110217054, guid: 8176e40341fd5eb4d98c0806263589a4, type: 3}
     minSize: 10
   uiObjectPools:
   - tag: ScorePopupPool
@@ -790,7 +811,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 1
     m_VerticalOverflow: 1
     m_LineSpacing: 1
-  m_Text: 'SCORE: 1234'
+  m_Text: 'BOXES: 29'
 --- !u!222 &1564141472
 CanvasRenderer:
   m_ObjectHideFlags: 0

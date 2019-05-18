@@ -226,8 +226,9 @@ public class EffectManager : MonoBehaviour
 				for (int y = 0; y < gridHeight; y++)
 				{
 					if (grid.IsEmptyCell(x, y)) continue;
-
-					grid.GetGridElementDataFromIndex(new IntVector2(x, y)).elementTransform.GetComponentInChildren<Renderer>().material.color = defaultElementColor;
+					var gridElement = grid.GetGridElementDataFromIndex(new IntVector2(x, y));
+					if (gridElement.elementTransform == null) continue;
+					gridElement.elementTransform.GetComponentInChildren<Renderer>().material.color = defaultElementColor;
 				}
 			}
 		}

@@ -20,8 +20,9 @@ public class MatchGameManager : MonoBehaviour
 
 	private float swapMovementSpeedIncrementMultiplier = 8f;
 	private int scoreShouldBe = 0;
-	private int score = 0;
-	private int moves = 25;
+	private int boxesShouldBe = 0;
+	private int boxes;
+	private int moves;
 	private bool invalidSelection = false;
 
 	private void Start()
@@ -166,16 +167,16 @@ public class MatchGameManager : MonoBehaviour
 	private void ResetCounters()
 	{
 		scoreShouldBe = 0;
-		score = 0;
-		scoreText.text = "SCORE: " + score.ToString();
+		boxes = 29;
+		scoreText.text = "BOXES: " + boxes.ToString();
 		moves = 25;
 		movesText.text = "MOVES: " + moves.ToString();
 	}
 
 	private void AddToScore(int scoreToAdd)
 	{
-		score += scoreToAdd;
-		scoreText.text = "SCORE: " + score.ToString();
+		boxes += scoreToAdd;
+		scoreText.text = "BOXES: " + boxes.ToString();
 	}
 
 	private void IncrementMoves()
@@ -187,6 +188,7 @@ public class MatchGameManager : MonoBehaviour
 	public void AutoMatchCallback(List<List<IntVector2>> matches)
 	{
 		int scoreToAdd = 0;
+		int boxesToSub = 0;
 		for (int i = 0; i < matches.Count; i++)
 		{
 			//Count score
@@ -198,6 +200,7 @@ public class MatchGameManager : MonoBehaviour
 		}
 
 		scoreShouldBe += scoreToAdd;
+		boxesShouldBe -= boxesToSub;
 	}
 
 	public void PointPopupEffectFinishCallback(int pointsToAdd)
