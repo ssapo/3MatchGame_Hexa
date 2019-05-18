@@ -38,6 +38,9 @@ public class MatchGameManager : MonoBehaviour
 		grid.OnAutoMatchesFound -= AutoMatchCallback;
 		grid.OnAutoMatchesFound += AutoMatchCallback;
 
+		grid.OnSuccessMoves -= IncrementMoves;
+		grid.OnSuccessMoves += IncrementMoves;
+
 		effectManager.OnPointPopupEffectFinished -= PointPopupEffectFinishCallback;
 		effectManager.OnPointPopupEffectFinished += PointPopupEffectFinishCallback;
 
@@ -118,8 +121,6 @@ public class MatchGameManager : MonoBehaviour
 
 					grid.SwapElementsRecord(selectedElement, releasePointIndex);
 					grid.MoveElementsToCorrectPositions(swapMovementSpeedIncrementMultiplier);
-
-					IncrementMoves();
 				}
 				else
 				{
@@ -179,9 +180,9 @@ public class MatchGameManager : MonoBehaviour
 		scoreText.text = "BOXES: " + boxes.ToString();
 	}
 
-	private void IncrementMoves()
+	private void IncrementMoves(int move)
 	{
-		moves--;
+		moves += move;
 		movesText.text = "MOVES: " + moves.ToString();
 	}
 

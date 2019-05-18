@@ -638,6 +638,9 @@ MonoBehaviour:
   - tag: OrangeElementCollectionEffectPool
     prefab: {fileID: 1362991110217054, guid: 8176e40341fd5eb4d98c0806263589a4, type: 3}
     minSize: 10
+  - tag: PurpleElementCollectionEffectPool
+    prefab: {fileID: 1362991110217054, guid: 7b76106dfb3adab4f89423c491e6e076, type: 3}
+    minSize: 10
   uiObjectPools:
   - tag: ScorePopupPool
     prefab: {fileID: 1473503007290330, guid: 02d014f94a4a2fd4a95ca762dda650c7, type: 3}

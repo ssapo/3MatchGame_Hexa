@@ -5,8 +5,10 @@ using UnityEngine;
 public class HexGrid : MonoBehaviour
 {
 
-	public delegate void ListListIntVector2(List<List<IntVector2>> listListVec2);
-	public event ListListIntVector2 OnAutoMatchesFound;
+	public delegate void DVoidListListIntVector2(List<List<IntVector2>> listListVec2);
+	public event DVoidListListIntVector2 OnAutoMatchesFound;
+	public delegate void DVoidInt(int move);
+	public event DVoidInt OnSuccessMoves;
 
 	public Transform hexBasePrefab;
 	public Transform hexWoodPrefab;
@@ -39,7 +41,6 @@ public class HexGrid : MonoBehaviour
 	private EffectManager effectManager;
 
 	private Coroutine elementMovementCoroutine;
-	private Coroutine fillGridCoroutine;
 	private Vector3 startPos;
 	private Vector3 fallDirection = Vector3.down;
 	private IntVector2[] prevSwapIndices = new IntVector2[2] { IntVector2.NullVector, IntVector2.NullVector };
@@ -49,8 +50,6 @@ public class HexGrid : MonoBehaviour
 	private float hexWidth = 0.75f;
 	private float hexHeight = 0.866f;
 	private float elementWidth = 0.5f;
-	//private float spawnOffsetPerRow = 1.25f;
-	//private float SpawnOffsetPerElementCount = 0.05f;
 
 	private bool isElementMovementDone = true;
 
@@ -106,7 +105,7 @@ public class HexGrid : MonoBehaviour
 			CreateGridWood();
 		}
 
-		InitializeGridElements();
+		StartCoroutine(InitializeGridElements());
 	}
 
 	private void CreateGridBase()
@@ -143,16 +142,15 @@ public class HexGrid : MonoBehaviour
 		}
 	}
 
-	private void InitializeGridElements()
+	private IEnumerator InitializeGridElements()
 	{
 		var gridWidth = GridWidth;
 		var gridHeight = GridHeight;
 
 		gridElements = new GridElementData[gridHeight, gridWidth];
 
-		FillGrid();
-		//ClearGridOfAutoMatches();
-		//MoveElementsToCorrectPositions();
+		yield return FillGridUntilFull(true);
+		yield return MoveElementSequenceCoroutine();
 	}
 
 	private void SpawnHexBaseTile(IntVector2 gridIndex)
@@ -196,7 +194,7 @@ public class HexGrid : MonoBehaviour
 
 	private ElementType ChooseEterateElementType()
 	{
-		typeEterator += 1;
+		typeEterator++;
 		typeEterator %= elementTypes.Length;
 		return elementTypes[typeEterator];
 	}
@@ -287,42 +285,32 @@ public class HexGrid : MonoBehaviour
 		return false;
 	}
 
-	private void ClearGridOfAutoMatches()
-	{
-		while (RemoveExistingMatches(true, false) > 0)
-		{
-			//print("Found and removed auto-matches; filling grid and redoing.");
-			//RecalculateSpawnPositions();
-			FillGrid();
-		}
-	}
-
-	private void ElementMovementFinished()
+	private IEnumerator ElementMovementFinished()
 	{
 		if (RemoveExistingMatches() > 0)
 		{
-			//print("Removed more matches; filling grid and starting drop animations again.");
-			prevSwapIndices[0] = IntVector2.NullVector;
-			prevSwapIndices[1] = IntVector2.NullVector;
+			//prevSwap이 진행되지 않아 NullVector가 아닌 상태일때 성공했다고 볼수 있음
+			if (prevSwapIndices[0] != IntVector2.NullVector && prevSwapIndices[1] != IntVector2.NullVector)
+			{
+				OnSuccessMoves?.Invoke(-1);
+				prevSwapIndices[0] = IntVector2.NullVector;
+				prevSwapIndices[1] = IntVector2.NullVector;
+			}
 
-			FillGrid();
-			MoveElementsToCorrectPositions();
+			yield return FillGridUntilFull(false);
+			yield return ElementMovementFinished();
 		}
 		else
 		{
-			if (prevSwapIndices[0] == IntVector2.NullVector || prevSwapIndices[1] == IntVector2.NullVector)
-			{
-				isElementMovementDone = true;
-			}
-			else
-			{
-				SwapElementsRestore(prevSwapIndices[0], prevSwapIndices[1]);
-				MoveElementsToCorrectPositions();
-			}
+			SwapElementsRestore(prevSwapIndices[0], prevSwapIndices[1]);
+			//MoveElementsToCorrectPositions();
+
+			yield return new WaitForSeconds(0.5f);
+			yield return MoveAllElementsTowardsCorrectWorldPositions();
 		}
 	}
 
-	private IEnumerator MoveAllElementsTowardsCorrectWorldPositions(float movementSpeedIncrementMultiplier = 1f)
+	private IEnumerator MoveAllElementsTowardsCorrectWorldPositions(float movementSpeedIncrementMultiplier = 4f)
 	{
 		float movementSpeed = 0f;
 		float movementSpeedIncrementPerSecond = 25f;
@@ -375,22 +363,26 @@ public class HexGrid : MonoBehaviour
 
 			yield return new WaitForEndOfFrame();
 		}
-
-		isElementMovementDone = true;
-		//print("Finished drop 'animations'.");
-		//ElementMovementFinished();
 	}
 
 	public void MoveElementsToCorrectPositions(float movementSpeedIncrementMultiplier = 1f)
 	{
-		isElementMovementDone = false;
-
 		if (elementMovementCoroutine != null)
 		{
 			StopCoroutine(elementMovementCoroutine);
 		}
 
-		elementMovementCoroutine = StartCoroutine(MoveAllElementsTowardsCorrectWorldPositions(movementSpeedIncrementMultiplier));
+		elementMovementCoroutine = StartCoroutine(MoveElementSequenceCoroutine(movementSpeedIncrementMultiplier));
+	}
+
+	private IEnumerator MoveElementSequenceCoroutine(float movementSpeedIncrementMultiplier = 1f)
+	{
+		isElementMovementDone = false;
+
+		yield return MoveAllElementsTowardsCorrectWorldPositions(movementSpeedIncrementMultiplier);
+		yield return ElementMovementFinished();
+
+		isElementMovementDone = true;
 	}
 
 	public bool GetIsElementMovementDone()
@@ -449,6 +441,9 @@ public class HexGrid : MonoBehaviour
 
 	public void SwapElements(IntVector2 aIndex, IntVector2 bIndex)
 	{
+		if (aIndex == IntVector2.NullVector || bIndex == IntVector2.NullVector)
+			return;
+
 		var oldA = gridElements[aIndex.y, aIndex.x];
 		gridElements[aIndex.y, aIndex.x] = gridElements[bIndex.y, bIndex.x];
 		gridElements[bIndex.y, bIndex.x] = oldA;
@@ -661,17 +656,7 @@ public class HexGrid : MonoBehaviour
 	}
 
 
-	public void FillGrid(bool first = false)
-	{
-		if (fillGridCoroutine != null)
-		{
-			StopCoroutine(fillGridCoroutine);
-		}
-
-		fillGridCoroutine = StartCoroutine(FillGridUntilFull(false));
-	}
-
-	public IEnumerator FillGridUntilFull(bool first = false)
+	public IEnumerator FillGridUntilFull(bool first)
 	{
 		var factoryIndcies = new List<IntVector2>() {
 			new IntVector2(0, 4),
@@ -700,6 +685,11 @@ public class HexGrid : MonoBehaviour
 				else
 					CreateNewGridElement(ChooseRandomElementType(), descendingElementWorldPos, new IntVector2(e.x, e.y), transform);
 			}
+
+			if (first)
+				yield return MoveAllElementsTowardsCorrectWorldPositions(8f);
+			else
+				yield return MoveAllElementsTowardsCorrectWorldPositions();
 
 			var forbidden = new HashSet<IntVector2>();
 			//Find all empty indices
@@ -748,12 +738,8 @@ public class HexGrid : MonoBehaviour
 							}
 						}
 					}
-					//else
-					//	forbidden.Add(new IntVector2(x, y));
 				}
 			}
-
-			yield return MoveAllElementsTowardsCorrectWorldPositions(8f);
 		}
 	}
 
@@ -762,7 +748,7 @@ public class HexGrid : MonoBehaviour
 		isElementMovementDone = false;
 
 		RemoveAllElements();
-		InitializeGridElements();
+		StartCoroutine(InitializeGridElements());
 	}
 
 	public bool IsEmptyCell(int x, int y)
