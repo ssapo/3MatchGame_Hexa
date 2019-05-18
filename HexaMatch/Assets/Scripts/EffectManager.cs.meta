@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: b6314265e5f51cd48bd33162c80b0ffc
+timeCreated: 1522655061
+licenseType: Free
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - validSelectionMaterial: {fileID: 2100000, guid: e74cc5a6fe900084892424f7afb2ec09,
+      type: 2}
+  - invalidSelectionMaterial: {fileID: 2100000, guid: 8599cbee1bf2b354b96abb6f764fefd7,
+      type: 2}
+  - pointPopupDestination: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
