@@ -466,7 +466,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hexBasePrefab: {fileID: 4227468934523398, guid: 9f38a4045117636489a819fccaa28c7f,
     type: 3}
-  hexWoodPrefab: {fileID: 4227468934523398, guid: 979249b394290894183dd0f6cb203feb,
+  hexWoodPrefab: {fileID: 6213001211910627561, guid: 979249b394290894183dd0f6cb203feb,
     type: 3}
   elementTypes:
   - {fileID: 11400000, guid: 0afd4b8803c5f134da45fdffe87d7b85, type: 2}
@@ -475,6 +475,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 1710d17428214174692211b05a777e5b, type: 2}
   - {fileID: 11400000, guid: 9343323aef6e40842902c89c2a6f7289, type: 2}
   - {fileID: 11400000, guid: 25315d77cb78a84488265a2130887ae5, type: 2}
+  - {fileID: 11400000, guid: 6fef11c1f8c237b45bfc19d053d0b71a, type: 2}
   gridElementTransformPoolTag: GridElementTransformPool
   minAutoMatchConnection: 3
   minLocketMatchConnection: 4
@@ -640,6 +641,9 @@ MonoBehaviour:
     minSize: 10
   - tag: PurpleElementCollectionEffectPool
     prefab: {fileID: 1362991110217054, guid: 7b76106dfb3adab4f89423c491e6e076, type: 3}
+    minSize: 10
+  - tag: WoodElementCollectionEffectPool
+    prefab: {fileID: 1362991110217054, guid: 7d5b56327c3201148b712334134f4b4d, type: 3}
     minSize: 10
   uiObjectPools:
   - tag: ScorePopupPool

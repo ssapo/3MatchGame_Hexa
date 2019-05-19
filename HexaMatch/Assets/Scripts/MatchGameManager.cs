@@ -38,8 +38,8 @@ public class MatchGameManager : MonoBehaviour
 		grid.OnAutoMatchesFound -= AutoMatchCallback;
 		grid.OnAutoMatchesFound += AutoMatchCallback;
 
-		grid.OnDestroyMoves -= IncrementBoxes;
-		grid.OnDestroyMoves += IncrementBoxes;
+		grid.OnDestroyWood -= IncrementBoxes;
+		grid.OnDestroyWood += IncrementBoxes;
 
 		grid.OnSuccessMoves -= IncrementMoves;
 		grid.OnSuccessMoves += IncrementMoves;
@@ -52,7 +52,6 @@ public class MatchGameManager : MonoBehaviour
 
 	private void Update()
 	{
-#if UNITY_ANDROID
 		#region LeftMouseButton Down
 		if (Input.GetMouseButtonDown(0) && grid.GetIsElementMovementDone())
 		{
@@ -62,16 +61,10 @@ public class MatchGameManager : MonoBehaviour
 				selectedElement = hitGridIndex;
 				var elementData = grid.GetGridElementDataFromIndex(selectedElement);
 				selectedElementType = elementData.elementType;
-				print("selectedElementType: " + selectedElementType);
-				if (selectedElementType != null)
+				if (selectedElementType != null && grid.IsNotTargetType(selectedElementType))
 				{
 					selectedElementTransform = elementData.elementTransform;
 					effectManager.SpawnSelectionEffectAtIndex(hitGridIndex);
-
-					//TODO HERE: Highlight available directions
-
-					print($"[y : {hitGridIndex.y}, x : {hitGridIndex.x}]");
-
 				}
 			}
 			lastGridIndexToHoverOver = hitGridIndex;
@@ -91,7 +84,7 @@ public class MatchGameManager : MonoBehaviour
 						if (grid.CheckIfNeighbours(selectedElement, hitGridIndex))
 						{
 							var hitElementType = grid.GetGridElementDataFromIndex(hitGridIndex).elementType;
-							if (hitElementType != null)
+							if (hitElementType != null && grid.IsNotTargetType(hitElementType))
 							{
 								effectManager.SpawnSelectionEffectAtIndex(hitGridIndex);
 							}
@@ -116,25 +109,15 @@ public class MatchGameManager : MonoBehaviour
 			{
 				if (grid.CheckIfNeighbours(selectedElement, hitGridIndex))
 				{
-					var releasePointIndex = hitGridIndex;
-					print("Released element at index " + releasePointIndex + ", swapping positions");
+					var hitElementType = grid.GetGridElementDataFromIndex(hitGridIndex).elementType;
+					if (hitElementType != null && grid.IsNotTargetType(hitElementType))
+					{
+						var releasePointIndex = hitGridIndex;
 
-					//TODO HERE: Check if hitTile is on a viable lane(e.g. if swap is restricted on the same lanes as the grabbed element)
-					//TODO HERE: Check if valid move(e.g. if swap allowed only when it results in a match; pre - check match)
-
-					grid.SwapElementsRecord(selectedElement, releasePointIndex);
-					grid.MoveElementsToCorrectPositions(swapMovementSpeedIncrementMultiplier);
+						grid.SwapElementsRecord(selectedElement, releasePointIndex);
+						grid.MoveElementsToCorrectPositions(swapMovementSpeedIncrementMultiplier);
+					}
 				}
-				else
-				{
-					print("Grabbed element released at it's original index, resetting element position.");
-					//grid.MoveElementsToCorrectPositions(swapMovementSpeedIncrementMultiplier);
-				}
-			}
-			else
-			{
-				print("Released element outside of the grid, resetting element position.");
-				//grid.MoveElementsToCorrectPositions(swapMovementSpeedIncrementMultiplier);
 			}
 
 			selectedElement = IntVector2.NullVector;
@@ -142,7 +125,6 @@ public class MatchGameManager : MonoBehaviour
 			effectManager.ClearAllSelectionEffects();
 		}
 		#endregion
-#endif // UNITY_ANDROID && UNITY_EDITOR
 	}
 
 	private void ClearSelectionsAndRelatedEffects()
@@ -170,9 +152,9 @@ public class MatchGameManager : MonoBehaviour
 
 	private void ResetCounters()
 	{
-		boxes = 29;
+		boxes = 10;
 		scoreText.text = "BOXES: " + boxes.ToString();
-		moves = 25;
+		moves = 20;
 		movesText.text = "MOVES: " + moves.ToString();
 	}
 
