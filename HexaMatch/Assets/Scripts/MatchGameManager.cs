@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -20,7 +21,6 @@ public class MatchGameManager : MonoBehaviour
 
 	private float swapMovementSpeedIncrementMultiplier = 8f;
 	private int scoreShouldBe = 0;
-	private int boxesShouldBe = 0;
 	private int boxes;
 	private int moves;
 	private bool invalidSelection = false;
@@ -37,6 +37,9 @@ public class MatchGameManager : MonoBehaviour
 
 		grid.OnAutoMatchesFound -= AutoMatchCallback;
 		grid.OnAutoMatchesFound += AutoMatchCallback;
+
+		grid.OnDestroyMoves -= IncrementBoxes;
+		grid.OnDestroyMoves += IncrementBoxes;
 
 		grid.OnSuccessMoves -= IncrementMoves;
 		grid.OnSuccessMoves += IncrementMoves;
@@ -167,7 +170,6 @@ public class MatchGameManager : MonoBehaviour
 
 	private void ResetCounters()
 	{
-		scoreShouldBe = 0;
 		boxes = 29;
 		scoreText.text = "BOXES: " + boxes.ToString();
 		moves = 25;
@@ -176,32 +178,36 @@ public class MatchGameManager : MonoBehaviour
 
 	private void AddToScore(int scoreToAdd)
 	{
-		boxes += scoreToAdd;
-		scoreText.text = "BOXES: " + boxes.ToString();
+		//boxes += scoreToAdd;
+		//scoreText.text = "BOXES: " + boxes.ToString();
 	}
 
-	private void IncrementMoves(int move)
+	private void IncrementMoves(int value)
 	{
-		moves += move;
+		moves += value;
 		movesText.text = "MOVES: " + moves.ToString();
+	}
+
+	private void IncrementBoxes(int value)
+	{
+		boxes += value;
+		scoreText.text = "BOXES: " + boxes.ToString();
 	}
 
 	public void AutoMatchCallback(List<List<IntVector2>> matches)
 	{
 		int scoreToAdd = 0;
-		int boxesToSub = 0;
-		for (int i = 0; i < matches.Count; i++)
-		{
-			//Count score
-			int scoreFromMatch = matches[i].Count * matches[i].Count;
-			scoreToAdd += scoreFromMatch;
+		//for (int i = 0; i < matches.Count; i++)
+		//{
+		//	//Count score
+		//	int scoreFromMatch = matches[i].Count * matches[i].Count;
+		//	scoreToAdd += scoreFromMatch;
 
-			//Call effects
-			effectManager.SpawnPointPopUpsForMatch(matches[i]);
-		}
+		//	//Call effects
+		//	effectManager.SpawnPointPopUpsForMatch(matches[i]);
+		//}
 
 		scoreShouldBe += scoreToAdd;
-		boxesShouldBe -= boxesToSub;
 	}
 
 	public void PointPopupEffectFinishCallback(int pointsToAdd)

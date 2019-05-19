@@ -7,8 +7,9 @@ public class HexGrid : MonoBehaviour
 
 	public delegate void DVoidListListIntVector2(List<List<IntVector2>> listListVec2);
 	public event DVoidListListIntVector2 OnAutoMatchesFound;
-	public delegate void DVoidInt(int move);
+	public delegate void DVoidInt(int value);
 	public event DVoidInt OnSuccessMoves;
+	public event DVoidInt OnDestroyMoves;
 
 	public Transform hexBasePrefab;
 	public Transform hexWoodPrefab;
@@ -35,6 +36,8 @@ public class HexGrid : MonoBehaviour
 
 	public bool spawnHexBases = true;
 	public bool offsetIndividualSpawns = true;
+
+	private Transform[] targetGoals;
 
 	private GridElementData[,] gridElements;
 	private PoolManager PoolManager;
@@ -130,6 +133,8 @@ public class HexGrid : MonoBehaviour
 		var gridWidth = GridWidth;
 		var gridHeight = GridHeight;
 
+		ClearGridWood();
+
 		for (int x = 0; x < gridWidth; x++)
 		{
 			for (int y = 0; y < gridHeight; y++)
@@ -137,9 +142,41 @@ public class HexGrid : MonoBehaviour
 				if (IsEmptyCell(x, y))
 					continue;
 
-				SpawnHexWoodTile(new IntVector2(x, y));
+				targetGoals[y * boardWidth + x] = SpawnHexWoodTile(new IntVector2(x, y));
 			}
 		}
+	}
+
+	private void ClearGridWood()
+	{
+		if (targetGoals == null)
+		{
+			targetGoals = new Transform[GridWidth * GridHeight];
+			return;
+		}
+
+		var gridWidth = GridWidth;
+		var gridHeight = GridHeight;
+
+		var toRemoves = new List<Transform>();
+		for (int x = 0; x < gridWidth; x++)
+		{
+			for (int y = 0; y < gridHeight; y++)
+			{
+				if (targetGoals[y * boardWidth + x] != null)
+				{
+					toRemoves.Add(targetGoals[y * boardWidth + x]);
+					targetGoals[y * boardWidth + x] = null;
+				}
+			}
+		}
+
+		for (int i = toRemoves.Count - 1; i >= 0; i--)
+		{
+			Destroy(toRemoves[i].gameObject);
+		}
+
+		targetGoals = new Transform[GridWidth * GridHeight];
 	}
 
 	private IEnumerator InitializeGridElements()
@@ -165,7 +202,7 @@ public class HexGrid : MonoBehaviour
 		hex.name = "HexTile " + gridIndex.x + "|" + gridIndex.y;
 	}
 
-	private void SpawnHexWoodTile(IntVector2 gridIndex)
+	private Transform SpawnHexWoodTile(IntVector2 gridIndex)
 	{
 		var hex = Instantiate(hexWoodPrefab) as Transform;
 		var spawnPos = CalculateWorldPos(gridIndex);
@@ -175,6 +212,7 @@ public class HexGrid : MonoBehaviour
 
 		hex.parent = this.transform;
 		hex.name = "HexWood " + gridIndex.x + "|" + gridIndex.y;
+		return hex;
 	}
 
 	private void CreateNewGridElement(ElementType elementType, Vector3 spawnPos, IntVector2 gridIndex, Transform parent)
@@ -202,9 +240,17 @@ public class HexGrid : MonoBehaviour
 	private List<List<IntVector2>> FindMatchesOfElementType(ElementType elementType)
 	{
 		var allMatchingElementIndices = new List<List<IntVector2>>();
-		var indicesAlreadyChecked = new List<IntVector2>();
+		var indicesAlreadyChecked = new HashSet<IntVector2>();
 
-		//Loop through grid elements
+		for (int y = 0; y < gridElements.GetLength(0); y++)
+		{
+			for (int x = 0; x < gridElements.GetLength(1); x++)
+			{
+				if (gridElements[y, x].flaggedForRemovalByAutoMatch) continue;
+				if (indicesAlreadyChecked.Contains(new IntVector2(x, y))) continue;
+			}
+		}
+				//Loop through grid elements
 		for (int y = 0; y < gridElements.GetLength(0); y++)
 		{
 			for (int x = 0; x < gridElements.GetLength(1); x++)
@@ -515,24 +561,20 @@ public class HexGrid : MonoBehaviour
 	public List<IntVector2> GetNeighbouringIndices(IntVector2 gridIndex)
 	{
 		var neighbours = new List<IntVector2>();
+		var bIndicies = new List<IntVector2>() {
+			new IntVector2(gridIndex.x + 1, gridIndex.y),
+			new IntVector2(gridIndex.x - 1, gridIndex.y),
+			new IntVector2(gridIndex.x, gridIndex.y + 1),
+			new IntVector2(gridIndex.x, gridIndex.y - 1),
+		};
 
-		for (int y = gridIndex.y - 1; y <= gridIndex.y + 1; y++)
+		foreach (var e in bIndicies)
 		{
-			if (y < 0 || y >= gridElements.GetLength(0))
-				continue;
-
-
-			for (int x = gridIndex.x - 1; x <= gridIndex.x + 1; x++)
+			if (CheckIfNeighbours(gridIndex, e))
 			{
-				if (x < 0 || x >= gridElements.GetLength(1))
-					continue;
-
-				if (CheckIfNeighbours(gridIndex, new IntVector2(x, y)))
-					neighbours.Add(new IntVector2(x, y));
+				neighbours.Add(e);
 			}
 		}
-
-		//print("Element " + gridIndex.x + "|" + gridIndex.y + " neighbour count: " + neighbours.Count);
 
 		return neighbours;
 	}
@@ -542,32 +584,35 @@ public class HexGrid : MonoBehaviour
 		int centerX = (GridWidth / 2);
 		if (aIndex.x > centerX)
 		{
-			return aIndex.x + 1 == bIndex.x && aIndex.y + 1 == bIndex.y
+			return !IsEmptyCell(bIndex.x, bIndex.y) &&
+				(aIndex.x + 1 == bIndex.x && aIndex.y + 1 == bIndex.y
 				|| aIndex.x + 1 == bIndex.x && aIndex.y + 0 == bIndex.y
 				|| aIndex.x + 0 == bIndex.x && aIndex.y + 1 == bIndex.y
 				|| aIndex.x - 1 == bIndex.x && aIndex.y - 1 == bIndex.y
 				|| aIndex.x - 1 == bIndex.x && aIndex.y + 0 == bIndex.y
-				|| aIndex.x + 0 == bIndex.x && aIndex.y - 1 == bIndex.y;
+				|| aIndex.x + 0 == bIndex.x && aIndex.y - 1 == bIndex.y);
 		}
 		else if (aIndex.x == centerX)
 		{
-			return aIndex.x + 1 == bIndex.x && aIndex.y + 1 == bIndex.y
+			return !IsEmptyCell(bIndex.x, bIndex.y) &&
+				(aIndex.x + 1 == bIndex.x && aIndex.y + 1 == bIndex.y
 				|| aIndex.x - 1 == bIndex.x && aIndex.y + 1 == bIndex.y
 				|| aIndex.x + 1 == bIndex.x && aIndex.y + 0 == bIndex.y
-				|| aIndex.x - 1 == bIndex.x && aIndex.y + 0 == bIndex.y;
+				|| aIndex.x - 1 == bIndex.x && aIndex.y + 0 == bIndex.y);
 		}
 		else
 		{
-			return aIndex.x - 1 == bIndex.x && aIndex.y + 1 == bIndex.y
+			return !IsEmptyCell(bIndex.x, bIndex.y) &&
+				(aIndex.x - 1 == bIndex.x && aIndex.y + 1 == bIndex.y
 				|| aIndex.x + 1 == bIndex.x && aIndex.y + 0 == bIndex.y
 				|| aIndex.x + 0 == bIndex.x && aIndex.y + 1 == bIndex.y
 				|| aIndex.x + 1 == bIndex.x && aIndex.y - 1 == bIndex.y
 				|| aIndex.x - 1 == bIndex.x && aIndex.y + 0 == bIndex.y
-				|| aIndex.x + 0 == bIndex.x && aIndex.y - 1 == bIndex.y;
+				|| aIndex.x + 0 == bIndex.x && aIndex.y - 1 == bIndex.y);
 		}
 	}
 
-	public int RemoveExistingMatches(bool ignoreCallbackEvent = false, bool spawnCollectionEffect = true)
+	public int RemoveExistingMatches(bool spawnCollectionEffect = true)
 	{
 		var matchIndices = new List<List<IntVector2>>();
 		for (int i = 0; i < elementTypes.Length; i++)
@@ -584,8 +629,24 @@ public class HexGrid : MonoBehaviour
 			}
 		}
 
-		if (!ignoreCallbackEvent && OnAutoMatchesFound != null)
-			OnAutoMatchesFound(matchIndices);
+		if (matchIndices.Count > 0)
+		{
+			foreach (var e in matchIndices)
+			{
+				foreach (var f in e)
+				{
+					var targetGoal = targetGoals[f.y * boardWidth + f.x];
+					if (targetGoal.gameObject.activeSelf)
+					{
+						targetGoal.gameObject.SetActive(false);
+						OnDestroyMoves?.Invoke(-1);
+					}
+				}
+			}
+
+			OnAutoMatchesFound?.Invoke(matchIndices);
+		}
+
 
 		int removedElementsCount = 0;
 		for (int j = 0; j < matchIndices.Count; j++)
@@ -745,7 +806,10 @@ public class HexGrid : MonoBehaviour
 
 	public void Restart()
 	{
+		StopAllCoroutines();
+
 		isElementMovementDone = false;
+		CreateGridWood();
 
 		RemoveAllElements();
 		StartCoroutine(InitializeGridElements());
@@ -753,6 +817,9 @@ public class HexGrid : MonoBehaviour
 
 	public bool IsEmptyCell(int x, int y)
 	{
+		if (x < 0 || x >= GridWidth || y < 0 || y >= GridHeight)
+			return true;
+
 		return board[y * boardWidth + x] == 0;
 	}
 }
