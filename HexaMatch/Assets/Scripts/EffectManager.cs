@@ -30,7 +30,7 @@ public class EffectManager : MonoBehaviour
 	private Queue<float> collectionEffectSpawnTimes;
 	private Queue<GameObject> activeCollectionEffects;
 
-	private float selectionEffectZPos = 0.1f;
+	private float selectionEffectZPos = 0.03f;
 	private float selectionLineZPos = -1f;
 	private float collectionEffectZPos = -0.1f;
 	private float collectionEffectLifetime = 1f;

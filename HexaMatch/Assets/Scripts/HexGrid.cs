@@ -1,6 +1,11 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+
+using Random = UnityEngine.Random;
+using Pattern = System.Tuple<IntVector2, int>;
+using System.Linq;
 
 public class HexGrid : MonoBehaviour
 {
@@ -28,8 +33,8 @@ public class HexGrid : MonoBehaviour
 
 	private static readonly int boardWidth = 9;
 
-	public int minViableConnection = 2;
 	public int minAutoMatchConnection = 10;
+	public int minLocketMatchConnection = 4;
 
 	public float gap = 0.1f;
 	public float minNewElementSpawnYPos = 2f;
@@ -246,68 +251,78 @@ public class HexGrid : MonoBehaviour
 		{
 			for (int x = 0; x < gridElements.GetLength(1); x++)
 			{
-				if (gridElements[y, x].flaggedForRemovalByAutoMatch) continue;
-				if (indicesAlreadyChecked.Contains(new IntVector2(x, y))) continue;
-			}
-		}
-				//Loop through grid elements
-		for (int y = 0; y < gridElements.GetLength(0); y++)
-		{
-			for (int x = 0; x < gridElements.GetLength(1); x++)
-			{
-				if (gridElements[y, x].flaggedForRemovalByAutoMatch) continue;
 				if (indicesAlreadyChecked.Contains(new IntVector2(x, y))) continue;
 
-				//If the element is of matching type with the element to check against
 				if (IsOfMatchingElementType(elementType, gridElements[y, x].elementType))
 				{
-					//print("Found element matching with the type to check at " + x + "|" + y);
-					//Store the matching neighbours on a one list
-					var matchingNeighbours = new List<IntVector2>();
-					//And the matching neighbours whose neighbours we have yet to check, on another list
-					var matchingNeighboursToCheck = new List<IntVector2>();
-					//Add the current element as the first item on both lists
-					matchingNeighbours.Add(new IntVector2(x, y));
-					matchingNeighboursToCheck.Add(new IntVector2(x, y));
+					var matchingNeighbours = new Dictionary<int, List<IntVector2>>();
+					var matchingNeighboursToCheck = new Stack<Pattern>();
+					var matchingIndicies = new List<IntVector2>() {/* new IntVector2(x, y)*/ };
 
-					//Check neighbours of all the neighbouring matches, until no unchecked matching neighbours are left
+					matchingNeighbours.Add(1, matchingIndicies.ToList());
+					matchingNeighbours.Add(2, matchingIndicies.ToList());
+					matchingNeighbours.Add(3, matchingIndicies.ToList());
+					matchingNeighbours.Add(4, matchingIndicies.ToList());
+
+					matchingNeighboursToCheck.Push(new Pattern(new IntVector2(x, y), 1));
+					matchingNeighboursToCheck.Push(new Pattern(new IntVector2(x, y), 2));
+					matchingNeighboursToCheck.Push(new Pattern(new IntVector2(x, y), 3));
+					matchingNeighboursToCheck.Push(new Pattern(new IntVector2(x, y), 4));
+
+					// BFS를 쓰는거같은데?
 					while (matchingNeighboursToCheck.Count > 0)
 					{
-						if (!indicesAlreadyChecked.Contains(matchingNeighboursToCheck[0]))
-							indicesAlreadyChecked.Add(matchingNeighboursToCheck[0]);
+						//print(matchingNeighboursToCheck.Count);
+						var peek = matchingNeighboursToCheck.Peek();
+						matchingNeighboursToCheck.Pop();
 
-						var neighbouringIndices = GetNeighbouringIndices(matchingNeighboursToCheck[0]);
-
-						for (int i = 0; i < neighbouringIndices.Count; i++)
+						var neighbouringIndices = GetNeighbouringIndices(peek);
+						foreach (var e in neighbouringIndices)
 						{
-							if (gridElements[neighbouringIndices[i].y, neighbouringIndices[i].x].flaggedForRemovalByAutoMatch) continue;
-
-							if (IsOfMatchingElementType(elementType, gridElements[neighbouringIndices[i].y, neighbouringIndices[i].x].elementType))
+							var index = e.Item1;
+							if (e.Item2 != peek.Item2) continue;
+							if (indicesAlreadyChecked.Contains(e.Item1)) continue;
+							if (IsOfMatchingElementType(elementType, gridElements[index.y, index.x].elementType))
 							{
-								if (!matchingNeighbours.Contains(neighbouringIndices[i]))
+								var list = matchingNeighbours[e.Item2];
+								if (!list.Contains(e.Item1))
 								{
-									matchingNeighbours.Add(neighbouringIndices[i]);
-									matchingNeighboursToCheck.Add(neighbouringIndices[i]);
-									gridElements[neighbouringIndices[i].y, neighbouringIndices[i].x].flaggedForRemovalByAutoMatch = true;
+									list.Add(e.Item1);
+									matchingNeighboursToCheck.Push(e);
 								}
 							}
 						}
-
-						//print("Removing matching neighbour at index " + matchingNeighboursToCheck[0] + " to check from list.");
-						matchingNeighboursToCheck.RemoveAt(0);
 					}
 
-					if (matchingNeighbours.Count >= minAutoMatchConnection)
+					foreach(var e in matchingNeighbours.Values)
 					{
-						//print("Connected matches of index " + x + "|" + y + " checked, adding " + matchingNeighbours.Count + " indices to the match list.");
-						allMatchingElementIndices.Add(matchingNeighbours);
+						if (e.Count >= minAutoMatchConnection)
+						{
+							print(e.Count);
+							var indicies = new List<IntVector2>();
+							foreach (var f in e)
+							{
+								print(f);
+								matchingIndicies.Add(f);
+								indicesAlreadyChecked.Add(f);
+							}
+							allMatchingElementIndices.Add(matchingIndicies);
+
+							break;
+						}
 					}
-					//else
-					//{
-					//    print("Connected matches of index " + x + "|" + y + " checked, connected element count not big enough for match, ignoring indices (matchingNeighbours.Count: " + matchingNeighbours.Count + ").");
-					//}
 				}
 			}
+		}
+
+		foreach (var e in allMatchingElementIndices)
+		{
+			string s = "";
+			foreach (var f in e)
+			{
+				s += $" {f} ";
+			}
+			print(s);
 		}
 
 		return allMatchingElementIndices;
@@ -436,41 +451,6 @@ public class HexGrid : MonoBehaviour
 		return isElementMovementDone;
 	}
 
-	public List<IntVector2> FindMatchesForIndex(IntVector2 gridIndex)
-	{
-		var elementType = gridElements[gridIndex.y, gridIndex.x].elementType;
-
-		//Store the matching neighbours on a one list
-		var matchingNeighbours = new List<IntVector2>();
-		//And the matching neighbours whose neighbours we have yet to check, on another list
-		var matchingNeighboursToCheck = new List<IntVector2>();
-		//Add the current element as the first item on both lists
-		matchingNeighbours.Add(gridIndex);
-		matchingNeighboursToCheck.Add(gridIndex);
-
-		//Check neighbours of all the neighbouring matches, until no unchecked matching neighbours are left
-		while (matchingNeighboursToCheck.Count > 0)
-		{
-			var neighbouringIndices = GetNeighbouringIndices(matchingNeighboursToCheck[0]);
-
-			for (int i = 0; i < neighbouringIndices.Count; i++)
-			{
-				if (IsOfMatchingElementType(elementType, gridElements[neighbouringIndices[i].y, neighbouringIndices[i].x].elementType))
-				{
-					if (!matchingNeighbours.Contains(neighbouringIndices[i]))
-					{
-						matchingNeighbours.Add(neighbouringIndices[i]);
-						matchingNeighboursToCheck.Add(neighbouringIndices[i]);
-					}
-				}
-			}
-
-			matchingNeighboursToCheck.RemoveAt(0);
-		}
-
-		return matchingNeighbours;
-	}
-
 	public void SwapElementsRecord(IntVector2 aIndex, IntVector2 bIndex)
 	{
 		SwapElements(aIndex, bIndex);
@@ -558,24 +538,71 @@ public class HexGrid : MonoBehaviour
 		return gridElements[gridIndex.y, gridIndex.x];
 	}
 
-	public List<IntVector2> GetNeighbouringIndices(IntVector2 gridIndex)
+	public List<Pattern> GetNeighbouringIndices(Pattern p)
 	{
-		var neighbours = new List<IntVector2>();
-		var bIndicies = new List<IntVector2>() {
-			new IntVector2(gridIndex.x + 1, gridIndex.y),
-			new IntVector2(gridIndex.x - 1, gridIndex.y),
-			new IntVector2(gridIndex.x, gridIndex.y + 1),
-			new IntVector2(gridIndex.x, gridIndex.y - 1),
-		};
+		var neighbours = new List<Pattern>();
+		
+		var index = p.Item1;
+		var type = p.Item2;
 
-		foreach (var e in bIndicies)
+		switch (type)
 		{
-			if (CheckIfNeighbours(gridIndex, e))
-			{
-				neighbours.Add(e);
-			}
-		}
+			// +x 직선
+			case 1:
+				{
+					var bIndex = new IntVector2(index.x + 1, index.y);
+					if (CheckIfNeighbours(index, bIndex))
+						neighbours.Add(new Pattern(bIndex, p.Item2));
 
+					bIndex = new IntVector2(index.x - 1, index.y);
+					if (CheckIfNeighbours(index, bIndex))
+						neighbours.Add(new Pattern(bIndex, p.Item2));
+				}
+				break;
+
+			// +y 직선
+			case 2:
+				{
+					var bIndex = new IntVector2(index.x, index.y + 1);
+					if (CheckIfNeighbours(index, bIndex))
+						neighbours.Add(new Pattern(bIndex, p.Item2));
+
+					bIndex = new IntVector2(index.x, index.y - 1);
+					if (CheckIfNeighbours(index, bIndex))
+						neighbours.Add(new Pattern(bIndex, p.Item2));
+				}
+				break;
+
+			// +x -y 직선
+			case 3:
+				{
+					var bIndex = new IntVector2(index.x - 1, index.y + 1);
+					if (CheckIfNeighbours(index, bIndex))
+						neighbours.Add(new Pattern(bIndex, p.Item2));
+
+					bIndex = new IntVector2(index.x + 1, index.y - 1);
+					if (CheckIfNeighbours(index, bIndex))
+						neighbours.Add(new Pattern(bIndex, p.Item2));
+				}
+				break;
+
+			// +x +y 직선
+			case 4:
+				{
+					var bIndex = new IntVector2(index.x + 1, index.y + 1);
+					if (CheckIfNeighbours(index, bIndex))
+						neighbours.Add(new Pattern(bIndex, p.Item2));
+
+					bIndex = new IntVector2(index.x - 1, index.y - 1);
+					if (CheckIfNeighbours(index, bIndex))
+						neighbours.Add(new Pattern(bIndex, p.Item2));
+				}
+				break;
+
+			default:
+				break;
+		}
+		
 		return neighbours;
 	}
 
@@ -584,8 +611,9 @@ public class HexGrid : MonoBehaviour
 		int centerX = (GridWidth / 2);
 		if (aIndex.x > centerX)
 		{
-			return !IsEmptyCell(bIndex.x, bIndex.y) &&
-				(aIndex.x + 1 == bIndex.x && aIndex.y + 1 == bIndex.y
+			return !IsEmptyCell(bIndex.x, bIndex.y)
+				&& aIndex != bIndex
+				&& (aIndex.x + 1 == bIndex.x && aIndex.y + 1 == bIndex.y
 				|| aIndex.x + 1 == bIndex.x && aIndex.y + 0 == bIndex.y
 				|| aIndex.x + 0 == bIndex.x && aIndex.y + 1 == bIndex.y
 				|| aIndex.x - 1 == bIndex.x && aIndex.y - 1 == bIndex.y
@@ -594,16 +622,18 @@ public class HexGrid : MonoBehaviour
 		}
 		else if (aIndex.x == centerX)
 		{
-			return !IsEmptyCell(bIndex.x, bIndex.y) &&
-				(aIndex.x + 1 == bIndex.x && aIndex.y + 1 == bIndex.y
+			return !IsEmptyCell(bIndex.x, bIndex.y) 
+				&& aIndex != bIndex
+				&& (aIndex.x + 1 == bIndex.x && aIndex.y + 1 == bIndex.y
 				|| aIndex.x - 1 == bIndex.x && aIndex.y + 1 == bIndex.y
 				|| aIndex.x + 1 == bIndex.x && aIndex.y + 0 == bIndex.y
 				|| aIndex.x - 1 == bIndex.x && aIndex.y + 0 == bIndex.y);
 		}
 		else
 		{
-			return !IsEmptyCell(bIndex.x, bIndex.y) &&
-				(aIndex.x - 1 == bIndex.x && aIndex.y + 1 == bIndex.y
+			return !IsEmptyCell(bIndex.x, bIndex.y)
+				&& aIndex != bIndex
+				&& (aIndex.x - 1 == bIndex.x && aIndex.y + 1 == bIndex.y
 				|| aIndex.x + 1 == bIndex.x && aIndex.y + 0 == bIndex.y
 				|| aIndex.x + 0 == bIndex.x && aIndex.y + 1 == bIndex.y
 				|| aIndex.x + 1 == bIndex.x && aIndex.y - 1 == bIndex.y
@@ -618,15 +648,6 @@ public class HexGrid : MonoBehaviour
 		for (int i = 0; i < elementTypes.Length; i++)
 		{
 			matchIndices.AddRange(FindMatchesOfElementType(elementTypes[i]));
-		}
-
-		//Reset flaggedForRemovalByAutoMatch flags
-		for (int y = 0; y < gridElements.GetLength(0); y++)
-		{
-			for (int x = 0; x < gridElements.GetLength(1); x++)
-			{
-				gridElements[y, x].flaggedForRemovalByAutoMatch = false;
-			}
 		}
 
 		if (matchIndices.Count > 0)
@@ -830,7 +851,6 @@ public struct GridElementData
 	public Transform elementTransform;
 	public Vector3 correctWorldPos;
 	public bool justSpawned;
-	public bool flaggedForRemovalByAutoMatch;
 
 	public GridElementData(ElementType _elementType, Transform _elementTransform, Vector3 _correctWorldPos)
 	{
@@ -838,7 +858,6 @@ public struct GridElementData
 		elementTransform = _elementTransform;
 		correctWorldPos = _correctWorldPos;
 		justSpawned = true;
-		flaggedForRemovalByAutoMatch = false;
 	}
 }
 
@@ -882,6 +901,11 @@ public class IntVector2
 	public static bool operator !=(IntVector2 a, IntVector2 b)
 	{
 		return (a.x != b.x || a.y != b.y);
+	}
+
+	public override String ToString()
+	{
+		return $"[x, {x}, y {y}]";
 	}
 
 }

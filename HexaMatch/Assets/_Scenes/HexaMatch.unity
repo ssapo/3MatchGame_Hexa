@@ -476,8 +476,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 9343323aef6e40842902c89c2a6f7289, type: 2}
   - {fileID: 11400000, guid: 25315d77cb78a84488265a2130887ae5, type: 2}
   gridElementTransformPoolTag: GridElementTransformPool
-  minViableConnection: 2
-  minAutoMatchConnection: 4
+  minAutoMatchConnection: 3
+  minLocketMatchConnection: 4
   gap: 0.1
   minNewElementSpawnYPos: 2
   spawnHexBases: 1
