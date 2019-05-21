@@ -10,7 +10,6 @@ public class SetTargetFramerate : MonoBehaviour
 	private void Start()
 	{
 		Application.targetFrameRate = targetFramerate;
-
 #if UNITY_STANDALONE
 		Screen.SetResolution(50 * 9, 50 * 16, false);
 #endif

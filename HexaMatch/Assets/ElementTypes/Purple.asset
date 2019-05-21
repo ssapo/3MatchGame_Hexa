@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   elementName: Purple
   collectionEffectPoolTag: PurpleElementCollectionEffectPool
-  elementMaterial: {fileID: 2100000, guid: a5b766b70656a3746b4b2f9f246f3a04, type: 2}
+  elementMaterial:
+  - {fileID: 2100000, guid: a5b766b70656a3746b4b2f9f246f3a04, type: 2}
   matchingElements:
   - {fileID: 11400000}
+  - {fileID: 11400000, guid: 10ab3bb9c3ce44641b2bfaaf4a149943, type: 2}

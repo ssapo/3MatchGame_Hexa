@@ -5,8 +5,8 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "ElementType")]
 public class ElementType : ScriptableObject
 {
-    public string elementName;
-    public string collectionEffectPoolTag;
-    public Material elementMaterial;
-    public ElementType[] matchingElements;
+	public string elementName;
+	public string collectionEffectPoolTag;
+	public Material[] elementMaterial;
+	public ElementType[] matchingElements;
 }

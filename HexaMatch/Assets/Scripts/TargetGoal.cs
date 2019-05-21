@@ -6,6 +6,7 @@ using UnityEngine;
 public class TargetGoal : MonoBehaviour
 {
 	public List<GameObject> lives;
+	public Renderer targetRenderer;
 
 	private int hp;
 
@@ -18,7 +19,7 @@ public class TargetGoal : MonoBehaviour
 		set
 		{
 			hp = value;
-			UpdateHP(hp - 1);
+			UpdateHP(hp);
 		}
 	}
 
@@ -39,5 +40,4 @@ public class TargetGoal : MonoBehaviour
 			lives[i].SetActive(true);
 		}
 	}
-
 }

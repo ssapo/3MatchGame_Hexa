@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   elementName: Orange
   collectionEffectPoolTag: OrangeElementCollectionEffectPool
-  elementMaterial: {fileID: 2100000, guid: 30bf5e294d7df4041a19e0abbc294825, type: 2}
+  elementMaterial:
+  - {fileID: 2100000, guid: 30bf5e294d7df4041a19e0abbc294825, type: 2}
   matchingElements:
   - {fileID: 11400000}
+  - {fileID: 11400000, guid: d2cbf1bb12ac8b649ababcf0ace48470, type: 2}

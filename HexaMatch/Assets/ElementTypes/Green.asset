@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   elementName: Green
   collectionEffectPoolTag: GreenElementCollectionEffectPool
-  elementMaterial: {fileID: 2100000, guid: 868fd93bb2e21a84e85d8f5a56f8e8db, type: 2}
+  elementMaterial:
+  - {fileID: 2100000, guid: 868fd93bb2e21a84e85d8f5a56f8e8db, type: 2}
   matchingElements:
   - {fileID: 11400000}
+  - {fileID: 11400000, guid: a756e680e7ed41a43b058a3ad3ec3f44, type: 2}

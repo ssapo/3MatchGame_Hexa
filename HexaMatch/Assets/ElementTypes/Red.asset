@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   elementName: Red
   collectionEffectPoolTag: RedElementCollectionEffectPool
-  elementMaterial: {fileID: 2100000, guid: df8604b095e02364c9ed4a592c9f7b46, type: 2}
+  elementMaterial:
+  - {fileID: 2100000, guid: df8604b095e02364c9ed4a592c9f7b46, type: 2}
   matchingElements:
   - {fileID: 11400000}
+  - {fileID: 11400000, guid: bef699bfe87dd61409d0d2227ad50fbc, type: 2}

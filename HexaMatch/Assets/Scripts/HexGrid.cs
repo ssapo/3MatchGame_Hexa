@@ -9,7 +9,6 @@ using System.Linq;
 
 public class HexGrid : MonoBehaviour
 {
-
 	public delegate void DVoidListListIntVector2(List<List<IntVector2>> listListVec2);
 	public event DVoidListListIntVector2 OnAutoMatchesFound;
 	public delegate void DVoidInt(int value);
@@ -19,32 +18,31 @@ public class HexGrid : MonoBehaviour
 	public Transform hexBasePrefab;
 	public TargetGoal hexWoodPrefab;
 	public ElementType[] elementTypes;
+	public ElementType[] spearElementTypes;
 
 	public string gridElementTransformPoolTag;
+	public string WoodTileTransformPoolTag;
 
-	// 이거 거꾸로가 맞음 착각하지마셈!!
+	// 이거 거꾸로가 맞음 햇갈 리지말것..!!
 	private int[] board = {
 		0, 0, 0, 0, 1, 0, 0, 0, 0,
-		0, 0, 0, 5, 4, 5, 0, 0, 0,
-		1, 4, 5, 5, 5, 5, 5, 4, 1,
-		0, 5, 5, 5, 5, 5, 5, 5, 0,
-		0, 5, 5, 5, 5, 5, 5, 5, 0,
-		0, 4, 5, 5, 5, 5, 5, 4, 0,
-		1, 0, 5, 5, 5, 5, 5, 0, 1,
-		0, 0, 0, 0, 5, 0, 0, 0, 0,
-		0, 0, 0, 0, 5, 0, 0, 0, 0,
+		0, 0, 0, 6, 5, 6, 0, 0, 0,
+		1, 5, 6, 6, 6, 6, 6, 5, 1,
+		0, 6, 6, 6, 6, 6, 6, 6, 0,
+		0, 6, 6, 6, 6, 6, 6, 6, 0,
+		0, 5, 6, 6, 6, 6, 6, 5, 0,
+		1, 0, 6, 6, 6, 6, 6, 0, 1,
+		0, 0, 0, 0, 6, 0, 0, 0, 0,
+		0, 0, 0, 0, 6, 0, 0, 0, 0,
 	};
 
 	private static readonly int boardWidth = 9;
 
 	public int minAutoMatchConnection = 10;
-	public int minLocketMatchConnection = 4;
-
+	public int minSpearMatchConnection = 4;
 	public float gap = 0.1f;
 	public float minNewElementSpawnYPos = 2f;
-
 	public bool spawnHexBases = true;
-	public bool offsetIndividualSpawns = true;
 
 	private TargetGoal[] targetGoals;
 
@@ -65,7 +63,8 @@ public class HexGrid : MonoBehaviour
 
 	private bool isElementMovementDone = true;
 
-	private int typeEterator;
+	private string typeElementString = "552313455221435040215241402011404";
+	private int typeEterator = 0;
 
 	public int GridWidth
 	{
@@ -153,8 +152,7 @@ public class HexGrid : MonoBehaviour
 				if (IsTargetCell(x, y))
 				{
 					int life = board[y * boardWidth + x];
-
-					targetGoals[y * boardWidth + x] = CreateHexWoodElement(new IntVector2(x, y), life);
+					targetGoals[y * boardWidth + x] = CreateHexWoodElement(new IntVector2(x, y), life, transform);
 				}
 			}
 		}
@@ -162,34 +160,23 @@ public class HexGrid : MonoBehaviour
 
 	private void ClearGridWood()
 	{
-		if (targetGoals == null)
-		{
-			targetGoals = new TargetGoal[GridWidth * GridHeight];
-			return;
-		}
-
 		var gridWidth = GridWidth;
 		var gridHeight = GridHeight;
 
-		var toRemoves = new List<TargetGoal>();
-		for (int x = 0; x < gridWidth; x++)
+		if (targetGoals != null)
 		{
-			for (int y = 0; y < gridHeight; y++)
+			for (int x = 0; x < gridWidth; x++)
 			{
-				if (targetGoals[y * boardWidth + x] != null)
+				for (int y = 0; y < gridHeight; y++)
 				{
-					toRemoves.Add(targetGoals[y * boardWidth + x]);
-					targetGoals[y * boardWidth + x] = null;
+					var goal = targetGoals[y * boardWidth + x];
+					if (goal != null)
+						goal.gameObject.SetActive(false);
 				}
 			}
 		}
-
-		for (int i = toRemoves.Count - 1; i >= 0; i--)
-		{
-			Destroy(toRemoves[i].gameObject);
-		}
-
-		targetGoals = new TargetGoal[GridWidth * GridHeight];
+		
+		targetGoals = new TargetGoal[gridWidth * gridHeight];
 	}
 
 	private IEnumerator InitializeGridElements()
@@ -217,28 +204,46 @@ public class HexGrid : MonoBehaviour
 		hex.name = "HexTile " + gridIndex.x + "|" + gridIndex.y;
 	}
 
-	private TargetGoal CreateHexWoodElement(IntVector2 gridIndex, int life)
+	private TargetGoal CreateHexWoodElement(IntVector2 gridIndex, int life, Transform parent)
 	{
-		var hex = Instantiate(hexWoodPrefab);
+		var targetType = ChooseTargetElementType();
+		if (targetType == null)
+			return null;
+
+		var hex = PoolManager.SpawnFromPool(WoodTileTransformPoolTag).GetComponent<TargetGoal>();
 		hex.Initialize(life);
 
 		var spawnPos = CalculateWorldPos(gridIndex);
 		spawnPos.z = hexWoodZPos;
 		hex.transform.position = spawnPos;
 		hex.transform.eulerAngles = new Vector3(-90f, 0, 0);
-
-		hex.transform.parent = this.transform;
+		hex.transform.parent = parent;
 		hex.name = "HexWood " + gridIndex.x + "|" + gridIndex.y;
-		gridElements[gridIndex.y, gridIndex.x] = new GridElementData(ChooseTargetElementType(), hex.transform, CalculateWorldPos(gridIndex));
+		hex.gameObject.SetActive(true);
+
+		gridElements[gridIndex.y, gridIndex.x] = new GridElementData(targetType, hex.transform, CalculateWorldPos(gridIndex));
 		return hex;
 	}
+
+	private void CreateNewSpearElement(ElementType elementType, Vector3 spawnPos, IntVector2 gridIndex, Transform parent)
+	{
+		var element = PoolManager.SpawnFromPool(gridElementTransformPoolTag);
+		element.GetComponentInChildren<Renderer>().material = elementType.elementMaterial[0];
+		element.transform.position = spawnPos;
+		element.transform.parent = parent;
+		element.name = elementType.elementName;
+		element.SetActive(true);
+		gridElements[gridIndex.y, gridIndex.x] = new GridElementData(elementType, element.transform, CalculateWorldPos(gridIndex));
+	}
+
 
 	private void CreateNewGridElement(ElementType elementType, Vector3 spawnPos, IntVector2 gridIndex, Transform parent)
 	{
 		var element = PoolManager.SpawnFromPool(gridElementTransformPoolTag);
-		element.GetComponentInChildren<Renderer>().material = elementType.elementMaterial;
+		element.GetComponentInChildren<Renderer>().material = elementType.elementMaterial[0];
 		element.transform.position = spawnPos;
 		element.transform.parent = parent;
+		element.name = elementType.elementName;
 		element.SetActive(true);
 		gridElements[gridIndex.y, gridIndex.x] = new GridElementData(elementType, element.transform, CalculateWorldPos(gridIndex));
 	}
@@ -250,9 +255,19 @@ public class HexGrid : MonoBehaviour
 
 	private ElementType ChooseEterateElementType()
 	{
-		typeEterator++;
-		typeEterator %= (elementTypes.Length - 1);
-		return elementTypes[typeEterator];
+		// 이게 틀리면 게임이 진행되면 안되므로 예외처리 안함
+		return elementTypes[Convert.ToInt32(typeElementString[typeEterator++] - '0')];
+	}
+
+	private ElementType ChooseSpearElementType(ElementType type)
+	{
+		foreach (var e in spearElementTypes)
+		{
+			if (IsOfMatchingElementType(type, e))
+				return e;
+		}
+
+		return null;
 	}
 
 	private ElementType ChooseTargetElementType()
@@ -313,17 +328,14 @@ public class HexGrid : MonoBehaviour
 					{
 						if (e.Count >= minAutoMatchConnection)
 						{
-							print(e.Count);
+							print(matchingNeighbours.Values.Count);
 							var indicies = new List<IntVector2>();
 							foreach (var f in e)
 							{
-								print(f);
-								matchingIndicies.Add(f);
+								indicies.Add(f);
 								indicesAlreadyChecked.Add(f);
 							}
-							allMatchingElementIndices.Add(matchingIndicies);
-
-							break;
+							allMatchingElementIndices.Add(indicies);
 						}
 					}
 				}
@@ -361,7 +373,7 @@ public class HexGrid : MonoBehaviour
 		if (RemoveExistingMatches() > 0)
 		{
 			//prevSwap이 진행되지 않아 NullVector가 아닌 상태일때 성공했다고 볼수 있음
-			if (prevSwapIndices[0] != IntVector2.NullVector && prevSwapIndices[1] != IntVector2.NullVector)
+			if (FirstMoveMatchSuccess())
 			{
 				OnSuccessMoves?.Invoke(-1);
 				prevSwapIndices[0] = IntVector2.NullVector;
@@ -379,6 +391,11 @@ public class HexGrid : MonoBehaviour
 			yield return new WaitForSeconds(0.5f);
 			yield return MoveAllElementsTowardsCorrectWorldPositions();
 		}
+	}
+
+	private bool FirstMoveMatchSuccess()
+	{
+		return prevSwapIndices[0] != IntVector2.NullVector && prevSwapIndices[1] != IntVector2.NullVector;
 	}
 
 	private IEnumerator MoveAllElementsTowardsCorrectWorldPositions(float movementSpeedIncrementMultiplier = 4f)
@@ -730,7 +747,7 @@ public class HexGrid : MonoBehaviour
 				if (goalList == null)
 					continue;
 
-				print(goalList.Count > 0);
+				//print(goalList.Count > 0);
 				foreach (var f in goalList)
 				{
 					var goal = targetGoals[f.y * boardWidth + f.x];
@@ -744,6 +761,30 @@ public class HexGrid : MonoBehaviour
 						OnDestroyWood?.Invoke(-1);
 						targetGoals[f.y * boardWidth + f.x] = null;
 					}
+				}
+
+				if (e.Count >= minSpearMatchConnection)
+				{
+					print(e.Count);
+					var index = IntVector2.NullVector;
+					if (FirstMoveMatchSuccess())
+					{
+						// 0번 인덱스가 로켓의 위치가 될것입니다
+						index = prevSwapIndices[1];
+					}
+					else
+					{
+						// 그냥 보기좋게 중간쯤에껏을 ..
+						index = e[1];
+					}
+
+					var elementType = gridElements[index.y, index.x].elementType;
+					var elementTransform = gridElements[index.y, index.x].elementTransform;
+
+					RemoveElementAtIndex(index, spawnCollectionEffect);
+					CreateNewSpearElement(ChooseSpearElementType(elementType), elementTransform.position, index, transform);
+
+					e.Remove(index);
 				}
 			}
 
@@ -793,6 +834,7 @@ public class HexGrid : MonoBehaviour
 			for (int x = 0; x < gridElements.GetLength(1); x++)
 			{
 				if (IsEmptyCell(x, y)) continue;
+
 				if (gridElements[y, x].elementTransform == null) continue;
 
 				gridElements[y, x].elementTransform.gameObject.SetActive(false);
@@ -919,8 +961,8 @@ public class HexGrid : MonoBehaviour
 	{
 		StopAllCoroutines();
 
+		typeEterator = 0;
 		isElementMovementDone = false;
-		CreateGridWood();
 
 		RemoveAllElements();
 		StartCoroutine(InitializeGridElements());
@@ -939,7 +981,7 @@ public class HexGrid : MonoBehaviour
 		if (x < 0 || x >= GridWidth || y < 0 || y >= GridHeight)
 			return true;
 
-		return board[y * boardWidth + x] == 4
+		return board[y * boardWidth + x] == 5
 			|| board[y * boardWidth + x] == 1;
 	}
 }

@@ -14,6 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   elementName: Wood
   collectionEffectPoolTag: WoodElementCollectionEffectPool
-  elementMaterial: {fileID: 2100000, guid: 1f0ec67c9e47de54f9460b3003234692, type: 2}
+  elementMaterial: {fileID: 2100000, guid: 6bb1f148e414b894dbe196af489da477, type: 2}
   matchingElements:
   - {fileID: 11400000}

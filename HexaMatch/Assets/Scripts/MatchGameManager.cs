@@ -6,6 +6,10 @@ using UnityEngine.UI;
 
 public class MatchGameManager : MonoBehaviour
 {
+	public GameObject winScreen;
+	public GameObject loseScreen;
+	public Button loseRestartButton;
+	public Button winRestartButton;
 	public Button restartButton;
 	public Text scoreText;
 	public Text movesText;
@@ -20,10 +24,14 @@ public class MatchGameManager : MonoBehaviour
 	private Vector3 lastMousePos;
 
 	private float swapMovementSpeedIncrementMultiplier = 8f;
-	private int scoreShouldBe = 0;
+
+	// 이번스테이지의 박스 수 나중에 데이터로 뺸다고 가정하면 상수로 뺴도 상관없지 않을까?
 	private int boxes;
+
+	// 이번스테이지의 무브 수 나중에 데이터로 뺸다고 가정하면 상수로 뺴도 상관없지 않을까?
 	private int moves;
-	private bool invalidSelection = false;
+
+	public bool IsGameOver { get; private set; }
 
 	private void Start()
 	{
@@ -34,24 +42,29 @@ public class MatchGameManager : MonoBehaviour
 		lastMousePos = Vector3.zero;
 
 		restartButton.onClick.AddListener(OnRestartButtonPressed);
+		loseRestartButton.onClick.AddListener(OnRestartButtonPressed);
+		winRestartButton.onClick.AddListener(OnRestartButtonPressed);
 
 		grid.OnAutoMatchesFound -= AutoMatchCallback;
 		grid.OnAutoMatchesFound += AutoMatchCallback;
 
-		grid.OnDestroyWood -= IncrementBoxes;
-		grid.OnDestroyWood += IncrementBoxes;
+		grid.OnDestroyWood -= CheckCountBoxes;
+		grid.OnDestroyWood += CheckCountBoxes;
 
-		grid.OnSuccessMoves -= IncrementMoves;
-		grid.OnSuccessMoves += IncrementMoves;
+		grid.OnSuccessMoves -= CheckCountMoves;
+		grid.OnSuccessMoves += CheckCountMoves;
 
 		effectManager.OnPointPopupEffectFinished -= PointPopupEffectFinishCallback;
 		effectManager.OnPointPopupEffectFinished += PointPopupEffectFinishCallback;
 
 		ResetCounters();
+		GameStart();
 	}
 
 	private void Update()
 	{
+		if (IsGameOver) return;
+
 		#region LeftMouseButton Down
 		if (Input.GetMouseButtonDown(0) && grid.GetIsElementMovementDone())
 		{
@@ -139,7 +152,6 @@ public class MatchGameManager : MonoBehaviour
 	private void InvalidateSelection()
 	{
 		effectManager.ClearAllSelectionEffects();
-		invalidSelection = true;
 		effectManager.InvalidateSelectionLine();
 	}
 
@@ -148,14 +160,15 @@ public class MatchGameManager : MonoBehaviour
 		grid.Restart();
 		effectManager.Restart();
 		ResetCounters();
+		GameStart();
 	}
 
 	private void ResetCounters()
 	{
 		boxes = 10;
-		scoreText.text = "BOXES: " + boxes.ToString();
+		UpdateBoxes(boxes);
 		moves = 20;
-		movesText.text = "MOVES: " + moves.ToString();
+		UpdateMoves(moves);
 	}
 
 	private void AddToScore(int scoreToAdd)
@@ -164,21 +177,53 @@ public class MatchGameManager : MonoBehaviour
 		//scoreText.text = "BOXES: " + boxes.ToString();
 	}
 
-	private void IncrementMoves(int value)
+	private void CheckCountMoves(int value)
 	{
 		moves += value;
-		movesText.text = "MOVES: " + moves.ToString();
+		if (moves <= 0)
+			GameOver(false);
+		UpdateMoves(moves);
 	}
 
-	private void IncrementBoxes(int value)
+	private void CheckCountBoxes(int value)
 	{
 		boxes += value;
-		scoreText.text = "BOXES: " + boxes.ToString();
+		if (boxes <= 0)
+			GameOver(true);
+		UpdateBoxes(boxes);
+	}
+
+	private void GameStart()
+	{
+		winScreen.SetActive(false);
+		loseScreen.SetActive(false);
+
+		IsGameOver = false;
+	}
+
+	private void GameOver(bool win)
+	{
+		if (win)
+			winScreen.SetActive(true);
+		else
+			loseScreen.SetActive(true);
+
+		IsGameOver = true;
+	}
+
+	private void UpdateMoves(int value)
+	{
+		movesText.text = $"MOVES: {value}";
+	}
+
+	private void UpdateBoxes(int value)
+	{
+		scoreText.text = $"BOXES: {value}";
 	}
 
 	public void AutoMatchCallback(List<List<IntVector2>> matches)
 	{
-		int scoreToAdd = 0;
+		//int scoreToAdd = 0;
 		//for (int i = 0; i < matches.Count; i++)
 		//{
 		//	//Count score
@@ -189,12 +234,11 @@ public class MatchGameManager : MonoBehaviour
 		//	effectManager.SpawnPointPopUpsForMatch(matches[i]);
 		//}
 
-		scoreShouldBe += scoreToAdd;
+		//scoreShouldBe += scoreToAdd;
 	}
 
 	public void PointPopupEffectFinishCallback(int pointsToAdd)
 	{
 		AddToScore(pointsToAdd);
 	}
-
 }

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa9d71019eb3d4847a749145c71cec98, type: 3}
+  m_Name: OrangeSpear
+  m_EditorClassIdentifier: 
+  elementName: OrangeSpear
+  collectionEffectPoolTag: OrangeElementCollectionEffectPool
+  elementMaterial:
+  - {fileID: 2100000, guid: e49f6694ccb1d0e4987efb4d518c205a, type: 2}
+  - {fileID: 2100000, guid: 8e03833fe5622a0428d2ba16682fed6d, type: 2}
+  - {fileID: 2100000, guid: 9751c7bffe71dcf4d8d492c95758e88b, type: 2}
+  matchingElements:
+  - {fileID: 11400000}
+  - {fileID: 11400000, guid: 25315d77cb78a84488265a2130887ae5, type: 2}
