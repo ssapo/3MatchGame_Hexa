@@ -54,6 +54,7 @@ public class HexGrid : MonoBehaviour
 	private Vector3 startPos;
 	private Vector3 fallDirection = Vector3.down;
 	private IntVector2[] prevSwapIndices = new IntVector2[2] { IntVector2.NullVector, IntVector2.NullVector };
+	private List<Tuple<IntVector2, List<IntVector2>>> spawnSpearEffectList = new List<Tuple<IntVector2, List<IntVector2>>>();
 
 	private float hexBaseZPos = 0.25f;
 	private float hexWoodZPos = 0.125f;
@@ -63,8 +64,10 @@ public class HexGrid : MonoBehaviour
 
 	private bool isElementMovementDone = true;
 
+	// 충돌이 나지 않는 first 셋팅
 	private string typeElementString = "552313455221435040215241402011404";
 	private int typeEterator = 0;
+	private int spearType = 0;
 
 	public int GridWidth
 	{
@@ -228,12 +231,12 @@ public class HexGrid : MonoBehaviour
 	private void CreateNewSpearElement(ElementType elementType, Vector3 spawnPos, IntVector2 gridIndex, Transform parent)
 	{
 		var element = PoolManager.SpawnFromPool(gridElementTransformPoolTag);
-		element.GetComponentInChildren<Renderer>().material = elementType.elementMaterial[0];
+		element.GetComponentInChildren<Renderer>().material = elementType.elementMaterial[spearType];
 		element.transform.position = spawnPos;
 		element.transform.parent = parent;
 		element.name = elementType.elementName;
 		element.SetActive(true);
-		gridElements[gridIndex.y, gridIndex.x] = new GridElementData(elementType, element.transform, CalculateWorldPos(gridIndex));
+		gridElements[gridIndex.y, gridIndex.x] = new GridElementData(elementType, element.transform, CalculateWorldPos(gridIndex), spearType + 1);
 	}
 
 
@@ -290,11 +293,11 @@ public class HexGrid : MonoBehaviour
 				{
 					var matchingNeighbours = new Dictionary<int, List<IntVector2>>();
 					var matchingNeighboursToCheck = new Stack<Pattern>();
-					var matchingIndicies = new List<IntVector2>();
+					var matchingIndices = new List<IntVector2>();
 
-					matchingNeighbours.Add(1, matchingIndicies.ToList());
-					matchingNeighbours.Add(2, matchingIndicies.ToList());
-					matchingNeighbours.Add(3, matchingIndicies.ToList());
+					matchingNeighbours.Add(1, matchingIndices.ToList());
+					matchingNeighbours.Add(2, matchingIndices.ToList());
+					matchingNeighbours.Add(3, matchingIndices.ToList());
 
 					matchingNeighboursToCheck.Push(new Pattern(new IntVector2(x, y), 1));
 					matchingNeighboursToCheck.Push(new Pattern(new IntVector2(x, y), 2));
@@ -328,7 +331,6 @@ public class HexGrid : MonoBehaviour
 					{
 						if (e.Count >= minAutoMatchConnection)
 						{
-							print(matchingNeighbours.Values.Count);
 							var indicies = new List<IntVector2>();
 							foreach (var f in e)
 							{
@@ -380,6 +382,7 @@ public class HexGrid : MonoBehaviour
 				prevSwapIndices[1] = IntVector2.NullVector;
 			}
 
+			yield return ProduceSpawnSpearEffect();
 			yield return FillGridUntilFull(false);
 			yield return ElementMovementFinished();
 		}
@@ -388,9 +391,33 @@ public class HexGrid : MonoBehaviour
 			SwapElementsRestore(prevSwapIndices[0], prevSwapIndices[1]);
 			//MoveElementsToCorrectPositions();
 
+			SpearTypeChange();
+
 			yield return new WaitForSeconds(0.5f);
 			yield return MoveAllElementsTowardsCorrectWorldPositions();
 		}
+	}
+
+	private void SpearTypeChange()
+	{
+		spearType++;
+		spearType %= 3;
+	}
+
+	private IEnumerator ProduceSpawnSpearEffect()
+	{
+		if (spawnSpearEffectList.Count > 0)
+		{
+			foreach(var e in spawnSpearEffectList)
+			{
+				//gridElements[e.y, e.x] 
+			}
+
+			spawnSpearEffectList.Clear();
+
+			//yield return MoveAllElementsTowardsCorrectWorldPositions();
+		}
+		yield return new WaitForSeconds(0.3f);
 	}
 
 	private bool FirstMoveMatchSuccess()
@@ -434,7 +461,7 @@ public class HexGrid : MonoBehaviour
 				if (distanceToCorrectPos <= movementSpeed * Time.deltaTime)
 				{
 					elementToMove.elementTransform.position = elementToMove.correctWorldPos;
-					gridElements[indicesToMove[i].y, indicesToMove[i].x].justSpawned = false;
+					//gridElements[indicesToMove[i].y, indicesToMove[i].x].justSpawned = false;
 					//print("Element at " + indicesToMove[i] + " has arrived at correct world pos. indicesToMove.Count: "
 					//    + indicesToMove.Count + ", i: " + i);
 					indicesToMove.RemoveAt(i);
@@ -596,34 +623,8 @@ public class HexGrid : MonoBehaviour
 				}
 				break;
 
-			// +y 직선
-			case 2:
-				{
-					if (index.x % 2 == 0)
-					{
-						var bIndex = new IntVector2(index.x, index.y + 1);
-						if (CheckIfNeighbours(index, bIndex))
-							neighbours.Add(new Pattern(bIndex, p.Item2));
-
-						bIndex = new IntVector2(index.x, index.y - 1);
-						if (CheckIfNeighbours(index, bIndex))
-							neighbours.Add(new Pattern(bIndex, p.Item2));
-					}
-					else
-					{
-						var bIndex = new IntVector2(index.x, index.y + 1);
-						if (CheckIfNeighbours(index, bIndex))
-							neighbours.Add(new Pattern(bIndex, p.Item2));
-
-						bIndex = new IntVector2(index.x, index.y - 1);
-						if (CheckIfNeighbours(index, bIndex))
-							neighbours.Add(new Pattern(bIndex, p.Item2));
-					}
-				}
-				break;
-
 			// +x -y 직선
-			case 3:
+			case 2:
 				{
 					if (index.x % 2 == 0)
 					{
@@ -647,6 +648,34 @@ public class HexGrid : MonoBehaviour
 					}
 				}
 				break;
+
+			// +y 직선
+			case 3:
+				{
+					if (index.x % 2 == 0)
+					{
+						var bIndex = new IntVector2(index.x, index.y + 1);
+						if (CheckIfNeighbours(index, bIndex))
+							neighbours.Add(new Pattern(bIndex, p.Item2));
+
+						bIndex = new IntVector2(index.x, index.y - 1);
+						if (CheckIfNeighbours(index, bIndex))
+							neighbours.Add(new Pattern(bIndex, p.Item2));
+					}
+					else
+					{
+						var bIndex = new IntVector2(index.x, index.y + 1);
+						if (CheckIfNeighbours(index, bIndex))
+							neighbours.Add(new Pattern(bIndex, p.Item2));
+
+						bIndex = new IntVector2(index.x, index.y - 1);
+						if (CheckIfNeighbours(index, bIndex))
+							neighbours.Add(new Pattern(bIndex, p.Item2));
+					}
+				}
+				break;
+
+		
 			default:
 				break;
 		}
@@ -744,38 +773,25 @@ public class HexGrid : MonoBehaviour
 			foreach (var e in matchIndices)
 			{
 				var goalList = GetWoodsIndiciesWithNeighboursIndicies(e);
-				if (goalList == null)
-					continue;
-
-				//print(goalList.Count > 0);
-				foreach (var f in goalList)
-				{
-					var goal = targetGoals[f.y * boardWidth + f.x];
-					if (goal == null)
-						continue;
-
-					goal.HP = goal.HP - 1;
-					if (goal.HP <= 0)
-					{
-						RemoveElementAtIndex(f, spawnCollectionEffect);
-						OnDestroyWood?.Invoke(-1);
-						targetGoals[f.y * boardWidth + f.x] = null;
-					}
+				if (goalList != null)
+				{ 
+					foreach (var f in goalList)
+						DamageToTarget(f);
 				}
 
 				if (e.Count >= minSpearMatchConnection)
 				{
-					print(e.Count);
 					var index = IntVector2.NullVector;
 					if (FirstMoveMatchSuccess())
 					{
-						// 0번 인덱스가 로켓의 위치가 될것입니다
-						index = prevSwapIndices[1];
+						if (e.Contains(prevSwapIndices[0]))
+							index = prevSwapIndices[0];
+						else
+							index = prevSwapIndices[1];
 					}
 					else
 					{
-						// 그냥 보기좋게 중간쯤에껏을 ..
-						index = e[1];
+						index = e[2];
 					}
 
 					var elementType = gridElements[index.y, index.x].elementType;
@@ -785,22 +801,142 @@ public class HexGrid : MonoBehaviour
 					CreateNewSpearElement(ChooseSpearElementType(elementType), elementTransform.position, index, transform);
 
 					e.Remove(index);
+					spawnSpearEffectList.Add(new Tuple<IntVector2, List<IntVector2>>(index, e));
 				}
 			}
 
 			OnAutoMatchesFound?.Invoke(matchIndices);
 		}
 
-
-		int removedElementsCount = 0;
-		for (int j = 0; j < matchIndices.Count; j++)
+		var toRemoveIndices = new HashSet<IntVector2>();
+		for (int i = 0; i < matchIndices.Count; ++i)
 		{
-			RemoveElementsAtIndices(matchIndices[j], spawnCollectionEffect);
-			removedElementsCount += matchIndices[j].Count;
-		}
-		//print("Removed " + removedElementsCount + " elements due to auto-matching.");
+			foreach (var f in matchIndices[i])
+			{
+				if (toRemoveIndices.Contains(f))
+					continue;
 
+				var spearType = gridElements[f.y, f.x].spearType;
+				if (spearType != 0)
+				{
+					var spearTargets = FindElementsOfSpear(new Pattern(f, spearType));
+					//foreach (var g in spearTargets)
+					//	print(g);
+					matchIndices.Add(spearTargets.ToList());
+				}
+
+				//if (!toRemoveIndices.Contains(f))
+				toRemoveIndices.Add(f);
+			}
+		}
+
+		RemoveElementsAtIndices(toRemoveIndices.ToList(), spawnCollectionEffect);
 		return matchIndices.Count;
+	}
+
+	private void DamageToTarget(IntVector2 f)
+	{
+		var goal = targetGoals[f.y * boardWidth + f.x];
+		if (goal == null)
+			return;
+
+		goal.HP = goal.HP - 1;
+		if (goal.HP <= 0)
+		{
+			RemoveElementAtIndex(f);
+			OnDestroyWood?.Invoke(-1);
+			targetGoals[f.y * boardWidth + f.x] = null;
+		}
+	}
+
+	private HashSet<IntVector2> FindElementsOfSpear(Pattern withPattern)
+	{
+		var startIndex = withPattern.Item1;
+		var spearType = withPattern.Item2;
+		var spearTargets = new HashSet<IntVector2>() { startIndex };
+		var gridWidth = GridWidth;
+		var gridHeight = GridHeight;
+
+		switch (spearType)
+		{
+			case 1:
+				//{
+				//	for (int x = 0; x < gridWidth; ++x)
+				//	{
+				//		var index = IntVector2.NullVector;
+				//		if (startIndex.x % 2 == 0)
+				//		{
+				//			int nx = x - startIndex.x;
+				//			if (nx > 0) nx += 1;
+				//			else if (nx < 0) nx -= 1;
+				//			index = new IntVector2(x, startIndex.y + (nx / 2));
+				//		}
+				//		else
+				//		{
+				//			int nx = x - startIndex.x;
+				//			//if (nx > 0) nx += 1;
+				//			//else if (nx < 0) nx -= 1;
+				//			index = new IntVector2(x, startIndex.y + (nx / 2));
+				//		}
+				//		if (IsEmptyCell(index.x, index.y))
+				//			continue;
+
+				//		if (IsTargetCell(index.x, index.y))
+				//			DamageToTarget(index);
+				//		else
+				//			spearTargets.Add(index);
+				//	}
+				//}
+				//break;
+
+			case 2:
+				//{
+				//	for (int x = 0; x < gridWidth; ++x)
+				//	{
+				//		var index = IntVector2.NullVector;
+				//		if (startIndex.x % 2 == 0)
+				//		{
+				//			int nx = x - startIndex.x;
+				//			//if (nx > 0) nx += 1;
+				//			//else if (nx < 0) nx -= 1; 
+				//			index = new IntVector2(x, startIndex.y - (nx / 2));
+				//		}
+				//		else
+				//		{
+				//			int nx = x - startIndex.x;
+				//			if (nx > 0) nx += 1;
+				//			else if (nx < 0) nx -= 1;
+				//			index = new IntVector2(x, startIndex.y - (nx / 2));
+				//		}
+				//		if (IsEmptyCell(index.x, index.y))
+				//			continue;
+
+				//		if (IsTargetCell(index.x, index.y))
+				//			DamageToTarget(index);
+				//		else
+				//			spearTargets.Add(index);
+				//	}
+				//}
+				//break;
+
+			case 3:
+				{
+					for (int y = 0; y < gridHeight; ++y)
+					{
+						var index = new IntVector2(startIndex.x, y);
+						if (IsEmptyCell(index.x, index.y))
+							continue;
+
+						if (IsTargetCell(index.x, index.y))
+							DamageToTarget(index);
+						else
+							spearTargets.Add(index);
+					}
+				}
+				break;
+		}
+
+		return spearTargets;
 	}
 
 	public void RemoveElementAtIndex(IntVector2 gridIndex, bool disableElementTransform = true, bool spawnCollectionElement = true)
@@ -846,12 +982,12 @@ public class HexGrid : MonoBehaviour
 
 	private bool CheckForEmptyGridIndices()
 	{
-		for (int y = 0; y < gridElements.GetLength(0); y++)
+		for (int y = 1; y < gridElements.GetLength(0); y++)
 		{
 			for (int x = 0; x < gridElements.GetLength(1); x++)
 			{
 				// 비어있으면 안되는 셀인데 비어 있다는 뜻
-				if (gridElements[y, x].elementTransform == null && !IsEmptyCell(x, y))
+				if ((gridElements[y, x].elementTransform == null && !IsEmptyCell(x, y)))
 				{
 					return true;
 				}
@@ -889,9 +1025,13 @@ public class HexGrid : MonoBehaviour
 				var descendingElementWorldPos = correctWorldPos - fallDirection * hexHeight;
 
 				if (first)
+				{
 					CreateNewGridElement(ChooseEterateElementType(), descendingElementWorldPos, new IntVector2(e.x, e.y), transform);
+				}
 				else
+				{
 					CreateNewGridElement(ChooseRandomElementType(), descendingElementWorldPos, new IntVector2(e.x, e.y), transform);
+				}
 			}
 
 			if (first)
@@ -991,14 +1131,14 @@ public struct GridElementData
 	public ElementType elementType;
 	public Transform elementTransform;
 	public Vector3 correctWorldPos;
-	public bool justSpawned;
+	public int spearType;
 
-	public GridElementData(ElementType _elementType, Transform _elementTransform, Vector3 _correctWorldPos)
+	public GridElementData(ElementType _elementType, Transform _elementTransform, Vector3 _correctWorldPos, int type = 0)
 	{
 		elementType = _elementType;
 		elementTransform = _elementTransform;
 		correctWorldPos = _correctWorldPos;
-		justSpawned = true;
+		spearType = type;
 	}
 }
 

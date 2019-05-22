@@ -25,10 +25,7 @@ public class MatchGameManager : MonoBehaviour
 
 	private float swapMovementSpeedIncrementMultiplier = 8f;
 
-	// 이번스테이지의 박스 수 나중에 데이터로 뺸다고 가정하면 상수로 뺴도 상관없지 않을까?
 	private int boxes;
-
-	// 이번스테이지의 무브 수 나중에 데이터로 뺸다고 가정하면 상수로 뺴도 상관없지 않을까?
 	private int moves;
 
 	public bool IsGameOver { get; private set; }
@@ -203,9 +200,9 @@ public class MatchGameManager : MonoBehaviour
 
 	private void GameOver(bool win)
 	{
-		if (win)
+		if (win && !loseScreen.activeInHierarchy)
 			winScreen.SetActive(true);
-		else
+		else if (!win && !winScreen.activeInHierarchy)
 			loseScreen.SetActive(true);
 
 		IsGameOver = true;
