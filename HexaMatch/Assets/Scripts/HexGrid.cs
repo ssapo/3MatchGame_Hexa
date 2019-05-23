@@ -860,64 +860,64 @@ public class HexGrid : MonoBehaviour
 		switch (spearType)
 		{
 			case 1:
-				//{
-				//	for (int x = 0; x < gridWidth; ++x)
-				//	{
-				//		var index = IntVector2.NullVector;
-				//		if (startIndex.x % 2 == 0)
-				//		{
-				//			int nx = x - startIndex.x;
-				//			if (nx > 0) nx += 1;
-				//			else if (nx < 0) nx -= 1;
-				//			index = new IntVector2(x, startIndex.y + (nx / 2));
-				//		}
-				//		else
-				//		{
-				//			int nx = x - startIndex.x;
-				//			//if (nx > 0) nx += 1;
-				//			//else if (nx < 0) nx -= 1;
-				//			index = new IntVector2(x, startIndex.y + (nx / 2));
-				//		}
-				//		if (IsEmptyCell(index.x, index.y))
-				//			continue;
+				{
+					for (int x = 0; x < gridWidth; ++x)
+					{
+						var index = IntVector2.NullVector;
+						if (startIndex.x % 2 == 0)
+						{
+							int nx = x - startIndex.x;
+							if (nx > 0) nx += 0;
+							else if (nx < 0) nx -= 1;
+							index = new IntVector2(x, startIndex.y + (nx / 2));
+						}
+						else
+						{
+							int nx = x - startIndex.x;
+							if (nx > 0) nx += 1;
+							else if (nx < 0) nx -= 0;
+							index = new IntVector2(x, startIndex.y + (nx / 2));
+						}
+						if (IsEmptyCell(index.x, index.y))
+							continue;
 
-				//		if (IsTargetCell(index.x, index.y))
-				//			DamageToTarget(index);
-				//		else
-				//			spearTargets.Add(index);
-				//	}
-				//}
-				//break;
+						if (IsTargetCell(index.x, index.y) && targetGoals[index.y * boardWidth + index.x] == null)
+							DamageToTarget(index);
+						else
+							spearTargets.Add(index);
+					}
+				}
+				break;
 
 			case 2:
-				//{
-				//	for (int x = 0; x < gridWidth; ++x)
-				//	{
-				//		var index = IntVector2.NullVector;
-				//		if (startIndex.x % 2 == 0)
-				//		{
-				//			int nx = x - startIndex.x;
-				//			//if (nx > 0) nx += 1;
-				//			//else if (nx < 0) nx -= 1; 
-				//			index = new IntVector2(x, startIndex.y - (nx / 2));
-				//		}
-				//		else
-				//		{
-				//			int nx = x - startIndex.x;
-				//			if (nx > 0) nx += 1;
-				//			else if (nx < 0) nx -= 1;
-				//			index = new IntVector2(x, startIndex.y - (nx / 2));
-				//		}
-				//		if (IsEmptyCell(index.x, index.y))
-				//			continue;
+				{
+					for (int x = 0; x < gridWidth; ++x)
+					{
+						var index = IntVector2.NullVector;
+						if (startIndex.x % 2 == 0)
+						{
+							int nx = x - startIndex.x;
+							if (nx > 0) nx += 1;
+							else if (nx < 0) nx -= 0;
+							index = new IntVector2(x, startIndex.y - (nx / 2));
+						}
+						else
+						{
+							int nx = x - startIndex.x;
+							if (nx > 0) nx += 0;
+							else if (nx < 0) nx -= 1;
+							index = new IntVector2(x, startIndex.y - (nx / 2));
+						}
+						if (IsEmptyCell(index.x, index.y))
+							continue;
 
-				//		if (IsTargetCell(index.x, index.y))
-				//			DamageToTarget(index);
-				//		else
-				//			spearTargets.Add(index);
-				//	}
-				//}
-				//break;
+						if (IsTargetCell(index.x, index.y) && targetGoals[index.y * boardWidth + index.x] == null)
+							DamageToTarget(index);
+						else
+							spearTargets.Add(index);
+					}
+				}
+				break;
 
 			case 3:
 				{
@@ -927,7 +927,7 @@ public class HexGrid : MonoBehaviour
 						if (IsEmptyCell(index.x, index.y))
 							continue;
 
-						if (IsTargetCell(index.x, index.y))
+						if (IsTargetCell(index.x, index.y) && targetGoals[index.y * boardWidth + index.x] == null)
 							DamageToTarget(index);
 						else
 							spearTargets.Add(index);
@@ -1119,7 +1119,7 @@ public class HexGrid : MonoBehaviour
 	public bool IsTargetCell(int x, int y)
 	{
 		if (x < 0 || x >= GridWidth || y < 0 || y >= GridHeight)
-			return true;
+			return false;
 
 		return board[y * boardWidth + x] == 5
 			|| board[y * boardWidth + x] == 1;
